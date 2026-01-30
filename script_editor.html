@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVG Script Editor</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 側邊欄編輯器容器 */
+        #editor-container {
+            width: 400px;
+            background: #252526;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            border-right: 1px solid #333;
+            transition: transform 0.3s ease-in-out;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 當收合時的樣式 */
+        #editor-container.collapsed {
+            transform: translateX(-100%);
+        }
+
+        /* 收合/展開按鈕 */
+        #toggle-sidebar {
+            position: absolute;
+            right: -30px;
+            top: 10px;
+            width: 30px;
+            height: 60px;
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            outline: none;
+        }
+
+        #editor-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #007acc;
+            font-weight: bold;
+        }
+
+        #script-editor {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            resize: none;
+            line-height: 1.5;
+            outline: none;
+        }
+
+        #script-editor:focus {
+            border-color: #007acc;
+        }
+
+        #run-button, #load-example-btn {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background 0.2s;
+        }
+
+        #run-button:hover, #load-example-btn:hover {
+            background-color: #1177bb;
+        }
+
+        #load-example-btn {
+            background-color: #3e3e3e;
+            margin-top: 10px;
+        }
+
+        #load-example-btn:hover {
+            background-color: #4e4e4e;
+        }
+
+        /* 右側預覽區域 */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: #1e1e1e;
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        #syntax-preview {
+            margin-top: auto;
+            background: #2d2d2d;
+            border-left: 4px solid #007acc;
+            padding: 15px;
+            min-height: 100px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+
+        #preview-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <!-- 左側編輯器側邊欄：包含腳本輸入、執行按鈕與範例載入 -->
+    <div id="editor-container">
+        <!-- 側邊欄切換按鈕 -->
+        <button id="toggle-sidebar" title="切換側邊欄">◀</button>
+        <div id="editor-title">AVG Script Editor</div>
+        <!-- 劇本文字輸入區：停用拼字檢查以避免干擾腳本指令 -->
+        <textarea id="script-editor" spellcheck="false" placeholder="請在此輸入劇本..."></textarea>
+        <!-- 儲存並將劇本發送到遊戲主視窗的按鈕 -->
+        <button id="run-button">執行腳本 (Run)</button>
+        <!-- 載入預設劇本範本的按鈕 -->
+        <button id="load-example-btn">載入範例</button>
+    </div>
+
+    <!-- 右側主內容區：目前用於顯示即時語法分析預覽 -->
+    <div id="main-content">
+        <!-- 佔位區塊，未來可用於更進階的即時渲染預覽 -->
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #555;">
+            <h2>遊戲預覽區域 (模擬)</h2>
+        </div>
+        <!-- 指令語法提示標籤 -->
+        <div id="preview-label">即時語法分析預覽</div>
+        <!-- 顯示當前輸入行之指令解析結果的區域 -->
+        <div id="syntax-preview">等待輸入...</div>
+    </div>
+
+    <script src="src/scripteditor.js"></script>
+</body>
+</html>

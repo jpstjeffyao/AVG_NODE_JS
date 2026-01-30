@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVG Node JS - Web Experiment</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: white;
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            overflow: auto;
+        }
+
+        #game-root {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #avg-ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 800px;
+            height: 150px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 2px solid #555;
+            border-radius: 10px;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            z-index: 100;
+        }
+
+        #avg-ui:hover {
+            border-color: #aaa;
+        }
+
+        .speaker-name {
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .dialog-text {
+            line-height: 1.5;
+            font-size: 1.1em;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* MENU 畫面樣式 */
+        #menu-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        #menu-screen h1 {
+            font-size: 3em;
+            margin-bottom: 50px;
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .menu-button {
+            padding: 15px 50px;
+            font-size: 1.5em;
+            background-color: transparent;
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .menu-button:hover {
+            background-color: #fff;
+            color: #000;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        /* Character container styles */
+        #character-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 90%; /* 限制高度，避免立繪超出畫面 */
+            z-index: 5; /* 確保在背景之上，在對話框之下 */
+            pointer-events: none; /* 允許點擊穿透 */
+        }
+
+        #character-container img {
+            position: absolute;
+            bottom: 0;
+            height: 100%; /* 讓立繪填滿容器高度 */
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            max-width: 50%; /* 避免單個立繪過寬 */
+        }
+
+        /* Character position styles */
+        .chara-center {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .chara-left {
+            left: 15%;
+            transform: translateX(-50%);
+        }
+
+        .chara-right {
+            left: 85%;
+            transform: translateX(-50%);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-root">
+        <!-- MENU 歡迎畫面 -->
+        <div id="menu-screen">
+            <h1>AVG Project</h1>
+            <div class="menu-buttons">
+                <button id="btn-new-game" class="menu-button">開始遊戲</button>
+                <button id="btn-load-game" class="menu-button">繼續遊戲</button>
+                <button id="btn-settings" class="menu-button">系統設定</button>
+                <button id="open-editor-button" class="menu-button">開啟劇本編輯器</button>
+            </div>
+        </div>
+
+        <div id="character-container"></div>
+
+        <!-- 對話 UI 容器 -->
+        <div id="avg-ui">
+            <div id="speaker" class="speaker-name"></div>
+            <div id="content" class="dialog-text">載入中...</div>
+        </div>
+
+    </div>
+    <script type="module" src="/src/index.ts"></script>
+</body>
+</html>
