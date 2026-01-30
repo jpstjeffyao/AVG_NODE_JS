@@ -73,16 +73,24 @@ async function bootstrap() {
     window.addEventListener('message', (event) => {
         // 檢查訊息內容是否有 script
         if (event.data && event.data.type === 'UPDATE_SCRIPT') {
-            const scriptLines = event.data.script.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
+            const scriptLines = event.data.script.split('\n')
+                .map((line: string) => line.trim())
+                .filter((line: string) => line.length > 0 && !line.startsWith('#'));
             console.log("Received script update from editor:", scriptLines);
             
             // 重新載入並執行新劇本
             kernel.loadScript(scriptLines);
             kernel.start();
             
-            // 隱藏 MENU 畫面（如果有 UIModule 提供的話）
-            const menu = document.getElementById('menu-screen');
-            if (menu) menu.style.display = 'none';
+            // 透過 UIModule 隱藏選單與顯示對話框
+            const uiModule = kernel.modules?.find((m: any) => m.moduleName === "UIModule");
+            if (uiModule) {
+                uiModule.hideMenu();
+                uiModule.showDialog();
+            } else {
+                const menu = document.getElementById('menu-screen');
+                if (menu) menu.style.display = 'none';
+            }
         }
     });
 }

@@ -109,6 +109,7 @@ export class ScriptEngine implements IGameModule {
 
                 // 呼叫 UIModule 渲染選項按鈕
                 if (uiModuleChoice) {
+                    uiModuleChoice.clearDialog();
                     uiModuleChoice.showChoices(choices);
 
                     // 定義點擊選項後的回呼函式
@@ -155,7 +156,6 @@ export class ScriptEngine implements IGameModule {
                     console.log(`[ScriptEngine] 呼叫 UIModule.renderText - speaker: ${speaker}, content: ${content}`);
                     uiModule.showDialog();
                     uiModule.renderText(speaker, content);
-                    this.next();
                 }
                 break;
             case 'BG':

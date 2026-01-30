@@ -5,7 +5,7 @@ import { IGameModule } from '../core/IGameModule';
  */
 export class AssetManager implements IGameModule {
     public moduleName: string = "AssetManager";
-    private cache: Map<string, HTMLImageElement> = new Map();
+    private cache: Map<string, HTMLImageElement | HTMLAudioElement> = new Map();
     private bgLayer!: HTMLDivElement;
     private spriteLayer!: HTMLDivElement;
     
@@ -13,7 +13,7 @@ export class AssetManager implements IGameModule {
     private spriteSlots: { [key: string]: HTMLDivElement } = {};
 
     // 自動資源載入時嘗試的副檔名清單，提升腳本編寫的容錯率
-    private supportedExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
+    private supportedExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg', '.gif'];
     // 指令類型與資源目錄的映射關係
     private typeSubDirs: { [key: string]: string } = {
         'bg': '/assets/bg/',
@@ -38,15 +38,36 @@ export class AssetManager implements IGameModule {
      */
     async load(key: string, url: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.src = url;
-            img.onload = () => {
-                this.cache.set(key, img);
-                resolve();
-            };
-            img.onerror = () => {
-                reject(new Error(`Failed to load image: ${url}`));
-            };
+            let element: HTMLImageElement | HTMLAudioElement;
+            if (url.match(/\.(png|jpg|jpeg|webp|gif)$/)) {
+                element = new Image();
+                (element as HTMLImageElement).src = url;
+                element.onload = () => {
+                    this.cache.set(key, element as HTMLImageElement);
+                    resolve();
+                };
+                element.onerror = (ev: any) => {
+                    const errorMsg = `[AssetManager] 圖片載入失敗: ${url}，可能原因: 404/500/MIME錯誤`;
+                    console.error(errorMsg, ev);
+                    reject(new Error(errorMsg));
+                };
+            } else if (url.match(/\.(mp3|wav|ogg)$/)) {
+                element = new Audio();
+                (element as HTMLAudioElement).src = url;
+                element.oncanplaythrough = () => {
+                    this.cache.set(key, element as HTMLAudioElement);
+                    resolve();
+                };
+                element.onerror = (ev: any) => {
+                    const errorMsg = `[AssetManager] 音訊載入失敗: ${url}，可能原因: 404/500/MIME錯誤`;
+                    console.error(errorMsg, ev);
+                    reject(new Error(errorMsg));
+                };
+            } else {
+                const errorMsg = `[AssetManager] 不支援的資源類型: ${url}`;
+                console.error(errorMsg);
+                reject(new Error(errorMsg));
+            }
         });
     }
 
@@ -137,6 +158,14 @@ export class AssetManager implements IGameModule {
         }
 
         console.error(`[AssetManager] 無法在 ${subDir} 找到資源: ${key}`);
+        // 顯示預設資源（圖片或音訊）
+        if (type === 'bg') {
+            if (this.bgLayer) this.bgLayer.style.backgroundImage = 'url(/assets/bg/default_bg.png)';
+        } else if (type === 'char') {
+            // 可選：插入預設立繪
+        } else if (type === 'music' || type === 'sound') {
+            // 可選：播放預設音效
+        }
         this.dispatchLoading(false);
         return false;
     }

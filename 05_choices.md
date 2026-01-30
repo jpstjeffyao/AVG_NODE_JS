@@ -1,10 +1,15 @@
-# 模組規格：Choice System (分支選擇系統)
+# 選項指令範例
 
-## 1. 功能定義
-- **UI 渲染**：在畫面上方顯示數個按鈕。
-- **點擊捕獲**：玩家點擊後，返回選擇的索引（Index）。
-- **指令執行**：根據選擇的結果，讓 ScriptEngine 跳轉到對應的 `LABEL`。
+以下是一個簡單的腳本範例，展示如何在選項前清除對話內容：
 
-## 2. 指令擴充 (Script DSL)
-- `LABEL|標籤名`：定義一個跳轉目標點。
-- `CHOICE|選項A;標籤A|選項B;標籤B`：顯示分支。
+```
+SAY|Hero|我們應該往哪邊走？
+CHOICE|左邊:LeftPath|右邊:RightPath
+LABEL|LeftPath
+SAY|Hero|我們選擇了左邊。
+GOTO|End
+LABEL|RightPath
+SAY|Hero|我們選擇了右邊。
+GOTO|End
+LABEL|End
+SAY|Hero|冒險結束了。

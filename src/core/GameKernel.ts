@@ -4,7 +4,7 @@ export class GameKernel {
     private static instance: GameKernel;
 
     public characterModule: CharacterModule;
-    private modules: any[] = [];
+    public modules: any[] = [];
 
     private constructor() {
         this.characterModule = new CharacterModule();

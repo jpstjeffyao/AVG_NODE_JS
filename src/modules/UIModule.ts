@@ -97,8 +97,17 @@ export class UIModule implements IGameModule {
    * 顯示 MENU 畫面
    */
   public showMenu(): void {
+    console.log("[UIModule] showMenu called");
     if (this._menuScreen) {
       this._menuScreen.style.display = "flex";
+    }
+    // 顯示選單時，除了清除內容，也要確保打字機計時器被清除
+    this.clear();
+    if (this._typingTimer !== null) {
+      window.clearInterval(this._typingTimer);
+      this._typingTimer = null;
+      this._isTyping = false;
+      console.log("[UIModule] showMenu: typingTimer stopped");
     }
   }
 
@@ -302,7 +311,30 @@ export class UIModule implements IGameModule {
   }
 
   clear(): void {
-    if (!this._container) return;
+    console.log("[UIModule] clear called");
+    if (!this._container) {
+      console.warn("[UIModule] clear: _container is null");
+      return;
+    }
+    const nameBox = this._container.querySelector("#speaker");
+    const contentBox = this._container.querySelector("#content");
+    console.log("[UIModule] clear: elements found", { nameBox: !!nameBox, contentBox: !!contentBox });
+    if (nameBox) {
+      nameBox.textContent = "";
+    }
+    if (contentBox) {
+      contentBox.textContent = "";
+    }
+  }
+
+  /**
+   * 清除對話視窗內容（角色名稱與對話文字），但不隱藏容器
+   */
+  clearDialog(): void {
+    if (!this._container) {
+      console.warn("[UIModule] clearDialog: _container is null");
+      return;
+    }
     const nameBox = this._container.querySelector("#speaker");
     const contentBox = this._container.querySelector("#content");
     if (nameBox) {
