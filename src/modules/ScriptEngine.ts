@@ -14,6 +14,7 @@ export class ScriptEngine implements IGameModule {
     private labels: { [key: string]: number } = {};
     private isWaitingForChoice: boolean = false;
     private isWaitingForAsset: boolean = false;
+    private isScriptEnd: boolean = false;
     
     /**
      * 紀錄立繪位置與角色ID的對應關係。
@@ -22,6 +23,20 @@ export class ScriptEngine implements IGameModule {
      * Value: 角色名稱 (如 'Hero')
      */
     private positionMap: Map<string, string> = new Map();
+
+    /**
+     * 角色名稱對應表（統一腳本角色名與立繪ID）
+     * key: 腳本中顯示名稱（如「伊莉莎白」），value: 立繪ID（如「elizabeth」）
+     */
+    private characterNameMap: { [displayName: string]: string } = {
+        '伊莉莎白': 'elizabeth',
+        'elizabeth': 'elizabeth',
+        '侍衛隊長': 'Captain',
+        'Captain': 'Captain',
+        '哥布林隊長': 'Goblin',
+        'Goblin': 'Goblin',
+        '系統': '', // 系統旁白不對應立繪
+    };
 
     constructor(stateManager: StateManager, private kernel: GameKernel) {
         this.stateManager = stateManager;
@@ -52,18 +67,33 @@ export class ScriptEngine implements IGameModule {
 
     /**
      * 執行下一行指令
-     */
-    /**
-     * 執行下一行指令
      * 改為非同步方法，等待當前指令執行完畢
      */
     async next(): Promise<void> {
-        if (this.isWaitingForChoice || this.isWaitingForAsset) return;
+        if (this.isWaitingForChoice || this.isWaitingForAsset || this.isScriptEnd) return;
 
         if (this.currentLineIndex < this.scriptLines.length) {
             const line = this.scriptLines[this.currentLineIndex];
             await this.executeLine(line);
             this.currentLineIndex++;
+
+            // 檢查是否執行到最後一行
+            if (this.currentLineIndex >= this.scriptLines.length) {
+                this.handleScriptEnd();
+            }
+        }
+    }
+
+    /**
+     * 處理劇情結束邏輯
+     */
+    private handleScriptEnd(): void {
+        console.log("[ScriptEngine] 偵測到劇情腳本已結束，進入 ScriptEnd 狀態");
+        this.isScriptEnd = true;
+        
+        const uiModule = this.kernel.uiModule;
+        if (uiModule) {
+            uiModule.enterScriptEndState();
         }
     }
 
@@ -78,10 +108,13 @@ export class ScriptEngine implements IGameModule {
         const match = line.match(commandRegex);
         if (match) {
             const command = match[1];
-            const args = match[2].split(',').map(arg => arg.trim());
+            // 修正：允許 | 或 , 作為參數分隔符，並自動轉為 ,
+            const argString = match[2].replace(/\|/g, ',');
+            const args = argString.split(',').map(arg => arg.trim());
             switch (command) {
                 case 'BGM_PLAY':
-                    const bgmKey = args[0];
+                    // 僅傳遞檔名，不含路徑
+                    const bgmKey = args[0].replace(/^.*[\\\/]/, '');
                     const bgmVol = parseFloat(args[1]);
                     const bgmLoop = args[2] === 'true';
                     const assetMgr = this.kernel.assetManager;
@@ -187,11 +220,14 @@ export class ScriptEngine implements IGameModule {
                 console.log(`[ScriptEngine] SAY 指令解析 - speaker: ${speaker}, content: ${content}`);
 
                 // 處理立繪高亮：根據當前說話者是誰，調整畫面中各個位置立繪的亮度
-                // 非說話者的立繪會稍微變暗 (0.6)，說話者則保持原樣 (1.0)
+                // 非說話者的立繪會稍微變暗 (0.6)
                 const assetModuleSAY = modules.find((m: any) => m.moduleName === "AssetManager");
                 if (assetModuleSAY) {
+                    // 統一比對角色名稱：將腳本說話者名稱轉為立繪ID
+                    const speakerKey = this.normalizeCharacterKey(speaker);
                     this.positionMap.forEach((charID, pos) => {
-                        const brightness = (charID === speaker) ? 1.0 : 0.6;
+                        const charKey = this.normalizeCharacterKey(charID);
+                        const brightness = (charKey && speakerKey && charKey === speakerKey) ? 1.0 : 0.6;
                         assetModuleSAY.setSpriteHighlight(pos, brightness);
                     });
                 }
@@ -339,8 +375,24 @@ export class ScriptEngine implements IGameModule {
         }
     }
 
+    /**
+     * 將角色名稱標準化（忽略大小寫、空白，並查對對應表）
+     */
+    public normalizeCharacterKey(name: string): string {
+        if (!name) return '';
+        const key = name.trim().toLowerCase();
+        // 先查對應表，否則回傳原始小寫
+        for (const display in this.characterNameMap) {
+            if (display.trim().toLowerCase() === key) {
+                return this.characterNameMap[display];
+            }
+        }
+        return key;
+    }
+
     initialize(): void {
         this.currentLineIndex = 0;
+        this.isScriptEnd = false;
     }
 
     update(): void {

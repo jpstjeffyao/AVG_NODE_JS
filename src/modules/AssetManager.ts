@@ -151,17 +151,30 @@ export class AssetManager implements IGameModule {
         // 顯示 Loading
         this.dispatchLoading(true);
 
-        // 嘗試不同的副檔名
+        // 若 key 已含副檔名（如 .mp3/.png），直接組合路徑，不再嘗試多副檔名
+        if (/\.[a-z0-9]+$/i.test(key)) {
+            const url = `${subDir}${key}`;
+            console.log(`[AssetManager] 直接載入資源 URL: ${url}`);
+            try {
+                await this.load(key, url);
+                this.dispatchLoading(false);
+                return true;
+            } catch (e) {
+                console.error(`[AssetManager] 直接載入失敗: ${url}`);
+                this.dispatchLoading(false);
+                return false;
+            }
+        }
+
+        // 嘗試不同的副檔名（僅當 key 無副檔名時）
         for (const ext of this.supportedExtensions) {
             const url = `${subDir}${key}${ext}`;
-            console.log(`[AssetManager] 嘗試載入資源 URL: ${url}`);
             console.log(`[AssetManager] 嘗試載入資源 URL: ${url}`);
             try {
                 await this.load(key, url);
                 this.dispatchLoading(false);
                 return true;
             } catch (e) {
-                // 嘗試下一個副檔名
                 continue;
             }
         }
@@ -291,5 +304,18 @@ export class AssetManager implements IGameModule {
         if (this.bgLayer) this.bgLayer.remove();
         if (this.spriteLayer) this.spriteLayer.remove();
         this.cache.clear();
+    }
+
+    /**
+     * 清除背景與所有立繪插槽，用於重設遊戲畫面
+     */
+    public clearAllVisuals(): void {
+        if (this.bgLayer) {
+            this.bgLayer.style.backgroundImage = '';
+        }
+        ['left', 'center', 'right'].forEach(pos => {
+            this.clearSprite(pos);
+            this.setSpriteHighlight(pos, 1.0); // 重設亮度
+        });
     }
 }

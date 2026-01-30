@@ -12,6 +12,7 @@ export class UIModule implements IGameModule {
   private _typingTimer: number | null = null;
   private _fullText: string = "";
   private _loadingOverlay: HTMLElement | null = null;
+  private _isScriptEnd: boolean = false;
 
   /**
    * 外部查詢目前是否正在執行打字機文字渲染
@@ -24,6 +25,10 @@ export class UIModule implements IGameModule {
    * 處理全螢幕點擊事件，用於推進遊戲腳本或跳過打字動畫
    */
   private handleDocumentClick = (): void => {
+    if (this._isScriptEnd) {
+      this.triggerPostScriptFlow();
+      return;
+    }
     (window as any).GameKernel?.getInstance()?.onUserClick();
   };
 
@@ -43,7 +48,11 @@ export class UIModule implements IGameModule {
       
       if (!isInput) {
         event.preventDefault(); // 防止頁面滾動
-        (window as any).GameKernel?.getInstance()?.onUserClick();
+        if (this._isScriptEnd) {
+          this.triggerPostScriptFlow();
+        } else {
+          (window as any).GameKernel?.getInstance()?.onUserClick();
+        }
       }
     }
   };
@@ -83,6 +92,116 @@ export class UIModule implements IGameModule {
     window.addEventListener('assetLoading', (e: any) => {
       this.toggleLoading(e.detail.isLoading);
     });
+
+    // 監聽劇情結束觸發事件，執行淡出效果
+    window.addEventListener('postScriptFlowTriggered', () => {
+      this.performFadeOut();
+    });
+
+    // 監聽淡出結束事件，自動返回主選單並重設狀態
+    window.addEventListener('fadeOutComplete', () => {
+      this.returnToMainMenu();
+    });
+  }
+
+  /**
+   * 進入劇情結束狀態，等待玩家觸發後續流程
+   */
+  public enterScriptEndState(): void {
+    console.log("[UIModule] 進入 ScriptEnd 狀態，等待玩家推進...");
+    this._isScriptEnd = true;
+  }
+
+  /**
+   * 觸發劇情結束後的流程（如淡出效果）
+   */
+  private triggerPostScriptFlow(): void {
+    console.log("[UIModule] 玩家觸發劇情結束後流程");
+    // 這裡觸發後續流程，例如自定義事件
+    window.dispatchEvent(new CustomEvent("postScriptFlowTriggered"));
+    
+    // 依據規格，淡出效果與返回主選單邏輯將於後續子任務處理
+    // 本任務僅實作監聽與觸發
+  }
+
+  /**
+   * 執行畫面淡出（漸暗）效果
+   * 動畫時間約 1.5~2 秒，結束後 dispatch 'fadeOutComplete'
+   */
+  private performFadeOut(): void {
+    console.log("[UIModule] 開始執行淡出效果...");
+
+    // 建立全螢幕黑色遮罩
+    const overlay = document.createElement('div');
+    overlay.id = 'fade-out-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'black';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 2s ease-in-out';
+    overlay.style.zIndex = '10000'; // 確保在最上層
+    overlay.style.pointerEvents = 'none'; // 避免阻擋後續可能的點擊，雖然已經結束
+
+    document.body.appendChild(overlay);
+
+    // 強制重繪以觸發 CSS Transition
+    overlay.offsetHeight;
+
+    // 開始淡出
+    overlay.style.opacity = '1';
+
+    // 監聽動畫結束
+    const onTransitionEnd = () => {
+      overlay.removeEventListener('transitionend', onTransitionEnd);
+      console.log("[UIModule] 淡出效果完成");
+      
+      // 通知主流程
+      window.dispatchEvent(new CustomEvent("fadeOutComplete"));
+
+      // 延遲移除遮罩，確保畫面切換完成後再消失
+      setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.remove();
+        }
+      }, 500);
+    };
+
+    overlay.addEventListener('transitionend', onTransitionEnd);
+  }
+
+  /**
+   * 自動返回主選單並重設相關模組狀態
+   */
+  private returnToMainMenu(): void {
+    console.log("[UIModule] 收到 fadeOutComplete，執行返回主選單流程...");
+
+    // 1. 隱藏對話框，顯示主選單
+    this.hideDialog();
+    this.showMenu();
+
+    // 2. 重設 UI 本身狀態
+    this._isScriptEnd = false;
+
+    // 3. 重設其他核心模組狀態 (透過 GameKernel)
+    const kernel = (window as any).GameKernel?.getInstance();
+    if (kernel) {
+      // 重設腳本引擎狀態，避免殘留在結束狀態
+      if (kernel.scriptEngine) {
+        kernel.scriptEngine.initialize();
+      }
+      
+      // 清除立繪與背景 (視需求，通常返回主選單應清空畫面)
+      if (kernel.assetManager) {
+        kernel.assetManager.clearAllVisuals();
+      }
+      
+      if (kernel.characterModule) {
+        kernel.characterModule.clear();
+      }
+    }
   }
 
   /**
@@ -164,15 +283,18 @@ export class UIModule implements IGameModule {
    * 點擊「開始遊戲」
    */
   private onNewGameClick(): void {
-    console.log("UIModule: New Game Clicked");
-    this.hideMenu();
-    this.showDialog();
+      console.log("UIModule: New Game Clicked");
+      this.hideMenu();
+      this.showDialog();
 
-    // 透過暴露在 window 的 kernel 啟動遊戲
-    const kernel = (window as any).GameKernel?.getInstance();
-    if (kernel) {
-      kernel.startGame();
-    }
+      // 重設 UI 狀態
+      this._isScriptEnd = false;
+
+      // 透過暴露在 window 的 kernel 啟動遊戲
+      const kernel = (window as any).GameKernel?.getInstance();
+      if (kernel) {
+          kernel.startGame();
+      }
   }
 
   /**
@@ -253,7 +375,20 @@ export class UIModule implements IGameModule {
           let brightness = 1.0;
           if (speakerName && speakerName.trim() !== "") {
             // 有明確說話者時，非說話者變暗 (0.6)
-            const isSpeaker = img && img.dataset.name === speakerName;
+            // 立繪亮度比對也需支援名稱對應與標準化
+            let isSpeaker = false;
+            if (img && img.dataset.name) {
+              // 取得 ScriptEngine 的 normalizeCharacterKey 方法
+              const kernel = (window as any).GameKernel?.getInstance();
+              const scriptEngine = kernel?.scriptEngine;
+              if (scriptEngine && typeof scriptEngine.normalizeCharacterKey === 'function') {
+                const imgKey = scriptEngine.normalizeCharacterKey(img.dataset.name);
+                const speakerKey = scriptEngine.normalizeCharacterKey(speakerName);
+                isSpeaker = (imgKey && speakerKey && imgKey === speakerKey);
+              } else {
+                isSpeaker = img.dataset.name === speakerName;
+              }
+            }
             brightness = isSpeaker ? 1.0 : 0.6;
           } else {
             // 若 speakerName 為空（旁白），則所有角色亮度設為 1.0

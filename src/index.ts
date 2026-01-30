@@ -21,17 +21,17 @@ async function bootstrap() {
    }
 
    // 載入測試劇本
-    kernel.scriptEngine.loadScript([
-       "# =========================",
-    "# 主選單後的正式劇情開始",
-    "# =========================",
+   kernel.scriptEngine.loadScript([
+      "# =========================",
+   "# 主選單後的正式劇情開始",
+   "# =========================",
 
-    "[BGM_PLAY: assets/music/FairyTale.mp3|0.6|true]",
+   "[BGM_PLAY: FairyTale.mp3, 0.6, true]",
 
-    "BG|bg_07",
-    "CHARA|SHOW|elizabeth_neutral_L|left",
-    "SAY|伊莉莎白|今日的王座，依然沉重如往昔。",
-    "SAY|伊莉莎白|百年的和平，並不是時間自然賜予的禮物。",
+   "BG|bg_07",
+   "CHARA|SHOW|elizabeth_neutral_L|left",
+   "SAY|伊莉莎白|今日的王座，依然沉重如往昔。",
+   "SAY|伊莉莎白|百年的和平，並不是時間自然賜予的禮物。",
 
     "CHARA|SHOW|Captain_neutral|right",
     "SAY|侍衛隊長|陛下，邊境的巡邏隊回報異常。",
