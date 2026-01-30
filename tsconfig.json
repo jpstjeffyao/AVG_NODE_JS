@@ -5,7 +5,12 @@
     "strict": true, 
     "esModuleInterop": true, 
     "skipLibCheck": true, 
-    "forceConsistentCasingInFileNames": true 
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./",
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@modules/*": ["src/modules/*"]
+    }
   }, 
   "include": ["src/**/*", "tests/**/*"], 
   "exclude": ["node_modules"] 

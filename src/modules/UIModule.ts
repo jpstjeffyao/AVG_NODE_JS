@@ -28,6 +28,27 @@ export class UIModule implements IGameModule {
   };
 
   /**
+   * 處理空白鍵事件，行為與 handleDocumentClick 一致
+   */
+  private handleDocumentSpaceKey = (event: KeyboardEvent): void => {
+    // 僅於主視窗啟用，不影響 script_editor.html
+    if (window.location.pathname.includes('script_editor.html')) return;
+
+    if (event.code === 'Space') {
+      const target = event.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' ||
+                     target.tagName === 'TEXTAREA' ||
+                     target.isContentEditable ||
+                     target.classList.contains('script-editor');
+      
+      if (!isInput) {
+        event.preventDefault(); // 防止頁面滾動
+        (window as any).GameKernel?.getInstance()?.onUserClick();
+      }
+    }
+  };
+
+  /**
    * 初始化 UI 模組：綁定 DOM 元素與事件監聽器
    */
   initialize(): void {
@@ -35,7 +56,7 @@ export class UIModule implements IGameModule {
     this._menuScreen = document.getElementById("menu-screen");
     this._dialogContainer = document.getElementById("avg-ui");
     this._container = this._dialogContainer;
-    
+
     // 確保 UI 容器在立繪層 (z-index: 1) 之上
     if (this._dialogContainer) {
       this._dialogContainer.style.zIndex = '100';
@@ -56,6 +77,7 @@ export class UIModule implements IGameModule {
 
     // 監聽全螢幕點擊，這是 AVG 推進劇情的核心互動方式
     document.addEventListener("click", this.handleDocumentClick);
+    document.addEventListener("keydown", this.handleDocumentSpaceKey);
 
     // 監聽來自 AssetManager 的載入狀態事件，顯示/隱藏 Loading 畫面
     window.addEventListener('assetLoading', (e: any) => {
@@ -145,7 +167,7 @@ export class UIModule implements IGameModule {
     console.log("UIModule: New Game Clicked");
     this.hideMenu();
     this.showDialog();
-    
+
     // 透過暴露在 window 的 kernel 啟動遊戲
     const kernel = (window as any).GameKernel?.getInstance();
     if (kernel) {
@@ -176,7 +198,7 @@ export class UIModule implements IGameModule {
    */
   renderText(name: string, content: string): void {
     if (!this._container) return;
-    
+
     // 如果上一次打字尚未完成，先清除舊的計時器
     if (this._typingTimer !== null) {
       window.clearInterval(this._typingTimer);
@@ -186,7 +208,7 @@ export class UIModule implements IGameModule {
     // 取得名稱框與內容框元素
     const nameBox = this._container.querySelector("#speaker");
     const contentBox = this._container.querySelector("#content") as HTMLElement;
-    
+
     if (nameBox) {
       nameBox.textContent = name;
     }
@@ -220,17 +242,24 @@ export class UIModule implements IGameModule {
   private updateSpriteHighlights(speakerName: string): void {
     const kernel = (window as any).GameKernel?.getInstance();
     const assetModule = kernel?.modules.find((m: any) => m.moduleName === "AssetManager");
-    
+
     if (assetModule) {
       // 遍歷所有位置，檢查是否有該角色的立繪
       ['left', 'center', 'right'].forEach(pos => {
         const slot = (assetModule as any).spriteSlots[pos];
         if (slot) {
           const img = slot.querySelector('img');
-          // 如果插槽內有圖片，且名稱匹配說話者，則高亮 (1.0)，否則變暗 (0.6)
-          // 如果對話者名稱為空（例如旁白），則所有立繪都可能變暗或保持原樣，此處設定為變暗
-          const isSpeaker = img && img.dataset.name === speakerName;
-          const brightness = isSpeaker ? 1.0 : 0.6;
+          
+          let brightness = 1.0;
+          if (speakerName && speakerName.trim() !== "") {
+            // 有明確說話者時，非說話者變暗 (0.6)
+            const isSpeaker = img && img.dataset.name === speakerName;
+            brightness = isSpeaker ? 1.0 : 0.6;
+          } else {
+            // 若 speakerName 為空（旁白），則所有角色亮度設為 1.0
+            brightness = 1.0;
+          }
+          
           assetModule.setSpriteHighlight(pos, brightness);
         }
       });
@@ -347,6 +376,14 @@ export class UIModule implements IGameModule {
 
   update(): void {}
   shutdown(): void {}
+
+  /**
+   * 釋放資源：移除事件監聽器
+   */
+  dispose(): void {
+    document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("keydown", this.handleDocumentSpaceKey);
+  }
 }
 
 // 在全域範圍加入類型定義

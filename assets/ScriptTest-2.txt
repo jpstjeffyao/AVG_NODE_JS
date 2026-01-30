@@ -1,0 +1,207 @@
+# ==========================================
+# 第一幕：寧靜的晨曦 (The Calm Morning)
+# ==========================================
+
+# 設定場景：皇室寢宮
+BG|bg_09
+# 播放BGM，開啟循環
+[BGM_PLAY: assets/music/FairyTale.mp3, 0.5, true]
+
+# 播放清晨的鳥鳴或環境音 (這裡用蟲鳴替代清晨寧靜感)
+[SFX_PLAY: assets/sound/cicadas-wav-55263.mp3, 0.3]
+
+SAY|系統|妖精王國，皇室寢宮。晨光透過窗簾灑落在柔軟的床鋪上。
+
+CHARA|SHOW|Captain_neutral|right
+SAY|侍衛隊長|伊莉莎白陛下，早安。今天的行程表已經排滿了，請您盡快梳洗。
+
+CHARA|SHOW|elizabeth_sad_L|left
+SAY|伊莉莎白|（揉揉眼睛）吵死了...你就不能像對待普通少女那樣溫柔一點嗎？我可是活了一百歲的老人家了，需要充足的睡眠。
+
+SAY|侍衛隊長|正因為您活了一百歲，更應該展現出女王的威儀。而且，您現在的外表看起來只有十四歲。
+
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|哼，這就是身為高等妖精的優越之處。哪像你們人類，短短幾十年就變得粗糙不堪。
+
+SAY|侍衛隊長|......屬下的粗糙是為了守護您的優雅。
+
+CHARA|SHOW|elizabeth_surprised_L|left
+SAY|伊莉莎白|（臉紅）...笨蛋。突然說這種話做什麼。
+
+# ==========================================
+# 第二幕：仇恨的烽火 (The Fire of Revenge)
+# ==========================================
+
+# 音效：巨大的撞擊聲/特殊事件
+[SFX_PLAY: assets/sound/gated-drop-sound-effect-240900.mp3, 1.0]
+# 音樂突然停止，營造緊張感
+[BGM_STOP]
+
+SAY|系統|轟隆————！！一聲巨響震碎了清晨的寧靜。
+
+CHARA|SHOW|elizabeth_surprised_L|left
+SAY|伊莉莎白|發生什麼事了！？
+
+CHARA|SHOW|Captain_angry|right
+SAY|侍衛隊長|敵襲！陛下，請退到我身後！
+
+# 切換背景：王座大廳 (被攻破)
+BG|bg_07
+# 播放火焰聲
+[SFX_PLAY: assets/sound/fire-sound-334130.mp3, 0.6]
+
+SAY|系統|兩人衝入大殿，只見王座前站著一個魁梧的身影，周圍燃燒著熊熊烈火。
+
+# 顯示哥布林隊長
+CHARA|SHOW|Goblin_neutral|center
+SAY|哥布林隊長|人類...還有庇護人類的妖精...我終於找到你們了。
+
+SAY|侍衛隊長|那個紋身...你是「碎骨氏族」的餘黨？二十年前那場戰爭應該已經結束了！
+
+CHARA|SHOW|Goblin_surprised|center
+SAY|哥布林隊長|結束？（狂笑）那是對你們而言！我的父母、我的兄弟，都在那天被你們人類的騎士團屠殺殆盡！
+
+SAY|哥布林隊長|我在屍堆裡裝死才活下來...每一天，我都在咀嚼這份仇恨！今天，我要用這把斧頭，砍下妖精女王的頭顱，來祭奠我的族人！
+
+CHARA|SHOW|elizabeth_neutral_L|left
+SAY|伊莉莎白|（眼神轉冷）因為憎恨人類，所以連同與人類共存的妖精也要毀滅嗎？真是悲哀的邏輯。
+
+SAY|侍衛隊長|陛下，這裡交給我。這傢伙的力量非同小可。
+
+CHOICE|相信隊長並疏散民眾:evacuate|施展魔法支援戰鬥:magic_support
+
+# --- 分支 A：疏散 (理性路線) ---
+LABEL|evacuate
+CHARA|SHOW|elizabeth_sad_L|left
+SAY|伊莉莎白|別死啊，這可是王令。我去開啟防禦結界保護城鎮！
+GOTO|dungeon_scene
+
+# --- 分支 B：戰鬥 (感性路線) ---
+LABEL|magic_support
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|少看不起人了！本王可是妖精女王，怎麼可能躲在人類背後！
+# 音效：雷擊聲 (模擬魔法攻擊)
+[SFX_PLAY: assets/sound/thunder-sound-375727.mp3, 0.8]
+SAY|系統|伊莉莎白詠唱咒語，一道雷光擊退了周圍的哥布林小兵，但皇宮結構開始崩塌。
+GOTO|dungeon_scene
+
+# ==========================================
+# 第三幕：地牢與暗道 (The Dark Path)
+# ==========================================
+
+LABEL|dungeon_scene
+
+# 切換背景：地牢內部 (作為臨時避難或通道)
+BG|bg_02
+# 播放老鼠叫聲、關門聲
+[SFX_PLAY: assets/sound/door-creaking-sound-effect-241381.mp3, 0.7]
+[SFX_PLAY: assets/sound/mouse-squeaks-68287.mp3, 0.4]
+
+CHARA|CLEAR
+CHARA|SHOW|Captain_sad|right
+SAY|侍衛隊長|皇宮守不住了。陛下，我們必須通過這條廢棄的地牢密道，直接繞到他們的後方——哥布林洞窟。
+
+CHARA|SHOW|elizabeth_sad_L|left
+SAY|伊莉莎白|沒想到有一天會如此狼狽...這裡陰森森的，還有老鼠。
+
+SAY|侍衛隊長|（遞出手）請抓緊我的手。無論環境多麼黑暗，我也會成為您的燈火。
+
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|...既然你都這麼說了，那我就勉強接受你的護衛吧。
+
+# 切換背景：城鎮地下道
+BG|bg_20
+# 播放流水聲
+[SFX_PLAY: assets/sound/running-stream-water-sound-239612.mp3, 0.5]
+
+SAY|系統|兩人穿過了充滿汙水的地下道，侍衛隊長的盔甲沾滿了泥濘，但伊莉莎白在他的保護下依然一塵不染。
+
+SAY|伊莉莎白|隊長，那個哥布林說的是真的嗎？關於二十年前的屠殺。
+
+SAY|侍衛隊長|...是的。那時人類為了擴張領土，確實採取了極端的手段。仇恨生出了仇恨，現在報應來了。
+
+CHARA|SHOW|elizabeth_neutral_L|left
+SAY|伊莉莎白|那麼，我們這次去，不只是為了生存，也是為了斬斷這個鎖鏈。
+
+# ==========================================
+# 第四幕：終焉的王座 (The Final Throne)
+# ==========================================
+
+# 切換背景：哥布林洞窟 石王座
+BG|bg_17
+# 播放BGM淡入
+[BGM_FADE_IN: 2, assets/music/FairyTale.mp3, 0.8, true]
+
+SAY|系統|密道的盡頭，直接通往了哥布林臨時據點的核心——石王座大廳。哥布林隊長正坐在那裡，擦拭著巨大的戰斧。
+
+CHARA|SHOW|Goblin_neutral|center
+SAY|哥布林隊長|你們竟然主動送上門來？不用我去找你們，真是太貼心了！
+
+CHARA|SHOW|Captain_angry|right
+SAY|侍衛隊長|這一切該結束了！你的復仇對象是我（人類），放過妖精王國！
+
+CHARA|SHOW|Goblin_surprised|center
+SAY|哥布林隊長|放過？當我的妹妹哭著求饒時，你們的人類士兵有放過她嗎！？去死吧！！
+
+# 戰鬥開始
+# 隱藏立繪準備動作
+CHARA|HIDE|center
+[SFX_PLAY: assets/sound/thunder-sound-375727.mp3, 1.0]
+
+SAY|系統|戰鬥極其激烈，哥布林隊長擁有怪力，每一次揮擊都讓地面震動。侍衛隊長雖劍術高超，但在狹窄的洞窟中難以施展。
+
+CHARA|SHOW|Captain_sad|right
+SAY|侍衛隊長|（喘息）...咳...力量差距太大了...
+
+CHARA|SHOW|elizabeth_surprised_L|left
+SAY|伊莉莎白|隊長！！
+
+CHOICE|使用禁忌魔法一擊必殺:bad_end|與隊長合力尋找破綻:true_end
+
+# --- 結局分支 A：悲劇 (力量的代價) ---
+LABEL|bad_end
+CHARA|SHOW|elizabeth_neutral_L|left
+SAY|伊莉莎白|我不能失去你...即使要我墮落也無所謂！
+SAY|系統|伊莉莎白解放了身為妖精王的全部魔力，耀眼的光芒吞噬了哥布林，也震塌了洞窟。
+BG|bg_05
+SAY|系統|哥布林死了，但隊長為了保護失控的女王，被落石擊中...
+SAY|伊莉莎白|不...這不是我要的結果...
+GOTO|end_script
+
+# --- 結局分支 B：真結局 (光與劍) ---
+LABEL|true_end
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|隊長！攻擊他的右腳！那是他在二十年前留下的舊傷！
+
+CHARA|SHOW|Captain_happy|right
+SAY|侍衛隊長|收到！
+
+# 播放關鍵一擊音效
+[SFX_PLAY: assets/sound/gated-drop-sound-effect-240900.mp3, 1.0]
+
+SAY|系統|伊莉莎白用魔法閃光干擾了哥布林的視線，侍衛隊長抓住機會，長劍精準地刺穿了哥布林的防禦。
+
+CHARA|SHOW|Goblin_surprised|center
+SAY|哥布林隊長|這...就是...你們的...羈絆嗎...（倒下）
+
+# 戰鬥結束，音樂轉柔
+[BGM_FADE_OUT: 3]
+[BGM_PLAY: assets/music/FairyTale.mp3, 0.5, true]
+
+CHARA|HIDE|center
+BG|bg_03
+SAY|系統|數日後，陽光下的田園村落。
+
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|雖然皇宮還在重建，但這鄉下的空氣也不錯呢。
+
+CHARA|SHOW|Captain_happy|right
+SAY|侍衛隊長|只要您平安無事，哪裡都是皇宮。
+
+SAY|伊莉莎白|（臉紅）你...你這木頭最近越來越會說話了！罰你去給我買草莓塔！
+
+SAY|侍衛隊長|遵命，我的女王陛下。
+
+LABEL|end_script
+CHARA|CLEAR
+SAY|系統|感謝遊玩《血色契約》。

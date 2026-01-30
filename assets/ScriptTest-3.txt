@@ -1,0 +1,198 @@
+# ==========================================
+# 第一幕：微服私訪 (The Inspection)
+# ==========================================
+
+# 場景：熱鬧的城鎮中心
+BG|bg_01
+# 音樂：播放輕快/幻想風格BGM
+[BGM_PLAY: assets/music/FairyTale.mp3, 0.6, true]
+# 音效：市集嘈雜聲
+[SFX_PLAY: assets/sound/busy-cafeteria-sound-27972.mp3, 0.5]
+
+SAY|系統|午後的城鎮中心人聲鼎沸，伊莉莎白女王在侍衛隊長的陪同下進行視察。
+
+CHARA|SHOW|elizabeth_neutral_L|left
+SAY|伊莉莎白|這就是人類的市集嗎？又吵又擠，空氣中還飄著奇怪的油煙味。
+
+CHARA|SHOW|Captain_neutral|right
+SAY|侍衛隊長|陛下，這是「煙火氣」。還有，請您走慢一點，不要離開我的保護範圍。
+
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|少囉嗦，那邊那個賣甜點的攤位看起來不錯，我要去看看！
+
+# ==========================================
+# 第二幕：突襲與綁架 (The Ambush)
+# ==========================================
+
+# 音效：突然的靜默或風聲，暗示氣氛不對
+[BGM_FADE_OUT: 2]
+[SFX_PLAY: assets/sound/desert-wind-gust-sound-effect-473421.mp3, 0.8]
+
+SAY|系統|伊莉莎白剛走到巷口，周圍的人群突然散去，幾個綠色的身影從陰影中竄出。
+
+# 切換背景：鬧區中的帷幕/死角
+BG|bg_06
+CHARA|SHOW|Goblin_neutral|center
+SAY|哥布林隊長|找到你了，嬌貴的妖精女王。
+
+CHARA|SHOW|Captain_angry|right
+SAY|侍衛隊長|哥布林？！竟然能滲透到王都內部...陛下，快退後！
+
+# 音效：刀劍碰撞聲
+[SFX_PLAY: assets/sound/gated-drop-sound-effect-240900.mp3, 1.0]
+
+SAY|系統|激戰瞬間爆發！但哥布林數量眾多，且似乎早有準備，專門針對侍衛隊長的劍術進行牽制。
+
+CHARA|SHOW|elizabeth_surprised_L|left
+SAY|伊莉莎白|你們這些無禮之徒！本王命令你們——呀啊！
+
+SAY|系統|一張帶有抗魔屬性的捕網從後方罩住了伊莉莎白。
+
+CHARA|SHOW|Goblin_surprised|center
+SAY|哥布林隊長|嘿嘿嘿，抓到了！別戀戰，撤退！帶著祭品回巢穴！
+
+CHARA|HIDE|left
+CHARA|HIDE|center
+SAY|侍衛隊長|陛下！！！（被伏兵擋住，只能眼睜睜看著女王被帶走）
+
+# ==========================================
+# 第三幕：籠中之鳥 (The Prison)
+# ==========================================
+
+# 場景：哥布林洞窟 監牢
+BG|bg_18
+# 音效：滴水聲、老鼠聲
+[SFX_PLAY: assets/sound/mouse-squeaks-68287.mp3, 0.6]
+[SFX_PLAY: assets/sound/door-creaking-sound-effect-241381.mp3, 0.8]
+
+SAY|系統|不知過了多久，伊莉莎白在冰冷的石床上醒來。
+
+CHARA|SHOW|elizabeth_sad_L|left
+SAY|伊莉莎白|（顫抖）這裡是...哪裡？好黑...好臭...
+
+CHARA|SHOW|Goblin_neutral|center
+SAY|哥布林隊長|歡迎來到「碎骨氏族」的巢穴。這裡就是妳最後的歸宿。
+
+SAY|伊莉莎白|侍衛隊長會來救我的！他絕對會把你們碎屍萬段！
+
+SAY|哥布林隊長|讓他來吧。我們會在他面前，將妳獻祭給我們先祖的亡靈！
+
+# ==========================================
+# 第四幕：全軍集結 (The Rally)
+# ==========================================
+
+# 場景：皇宮王座 (隊長回來請求支援/集結)
+BG|bg_07
+# 音樂：嚴肅、緊張的氛圍 (這裡沿用FairyTale但可想像為較激昂段落，或無BGM強調嚴肅)
+[BGM_PLAY: assets/music/FairyTale.mp3, 0.8, true]
+
+CHARA|SHOW|Captain_angry|center
+SAY|侍衛隊長|聽著！女王被擄往了哥布林洞窟。這是王國的恥辱，也是我的失職！
+
+SAY|侍衛隊長|所有還能拿劍的人，都跟我來！我們要在日落前攻破洞窟，救回陛下！
+
+SAY|眾士兵|（怒吼）為了女王！！
+
+# ==========================================
+# 第五幕：洞窟決戰 (The Rescue)
+# ==========================================
+
+# 場景：哥布林洞窟門口
+BG|bg_12
+# 音效：雷雨聲 (增加悲壯感)
+[SFX_PLAY: assets/sound/real-rain-sound-379215.mp3, 0.7]
+
+SAY|系統|人類軍隊如潮水般湧入洞窟，與哥布林展開了殊死戰。
+
+# 切換場景：哥布林洞窟 充滿黏液的房間 (中途)
+BG|bg_14
+SAY|侍衛隊長|滾開！擋路者死！
+
+# 切換場景：獻祭壇 (最終決戰地)
+BG|bg_15
+SAY|系統|隊長衝進了最深處的祭壇房間，伊莉莎白正被綁在石床上，哥布林隊長舉起了斧頭。
+
+CHARA|SHOW|elizabeth_surprised_L|left
+SAY|伊莉莎白|隊長！
+
+CHARA|SHOW|Goblin_surprised|right
+SAY|哥布林隊長|來得真快啊！但妳的命運已經註定！
+
+SAY|系統|哥布林隊長啟動了祭壇的機關，無數毒箭射向入口，同時揮斧砍向伊莉莎白。
+
+CHOICE|不顧受傷強行突破救援:good_ending|指揮士兵掩護射擊:bad_ending
+
+# ==========================================
+# 結局分支 A：獻祭 (Bad End)
+# ==========================================
+LABEL|bad_ending
+
+SAY|侍衛隊長|弓箭手！掩護我！
+
+# 音效：弓箭聲、機關聲
+[SFX_PLAY: assets/sound/gated-drop-sound-effect-240900.mp3, 1.0]
+
+SAY|系統|雖然箭雨逼退了哥布林隊長，但祭壇的機關卻快了一步。巨大的落石轟然落下，封死了祭壇。
+
+BG|bg_02
+# 畫面變暗或切換到絕望場景
+[BGM_STOP]
+[SFX_PLAY: assets/sound/thunder-sound-375727.mp3, 0.5]
+
+CHARA|CLEAR
+SAY|侍衛隊長|陛下！！！不！！！
+
+SAY|系統|當煙塵散去，祭壇上已空無一人。妖精女王的氣息永遠消失在黑暗的洞窟深處。
+SAY|系統|【BAD END - 永遠的悔恨】
+GOTO|end_script
+
+# ==========================================
+# 結局分支 B：安眠 (Good End)
+# ==========================================
+LABEL|good_ending
+
+SAY|侍衛隊長|絕對...不能讓你得逞！！
+
+# 音效：衝刺、斬擊
+[SFX_PLAY: assets/sound/desert-wind-gust-sound-effect-473421.mp3, 0.5]
+[SFX_PLAY: assets/sound/gated-drop-sound-effect-240900.mp3, 1.0]
+
+SAY|系統|侍衛隊長無視毒箭射穿肩膀，以驚人的速度衝上祭壇，用身體撞飛了哥布林隊長，並一劍刺穿了敵人的心臟。
+
+CHARA|SHOW|Goblin_surprised|right
+SAY|哥布林隊長|這...就是...人類的...執念嗎...（斷氣）
+
+CHARA|SHOW|elizabeth_happy_L|left
+SAY|伊莉莎白|（哭著撲進懷裡）笨蛋！你流了好多血！
+
+SAY|侍衛隊長|（微笑）這點小傷...比起失去您...不算什麼。我們回家吧。
+
+# 時間跳轉
+[BGM_FADE_OUT: 2]
+[BGM_PLAY: assets/music/FairyTale.mp3, 0.4, true]
+
+# 場景：皇室寢宮 (結局)
+BG|bg_09
+# 音效：清晨鳥鳴/蟲鳴
+[SFX_PLAY: assets/sound/cicadas-wav-55263.mp3, 0.3]
+
+SAY|系統|幾天後，清晨的陽光再次照進寢宮。
+
+CHARA|SHOW|Captain_happy|right
+SAY|侍衛隊長|陛下，已經日上三竿了，大臣們都在等您。
+
+CHARA|SHOW|elizabeth_neutral_L|left
+SAY|伊莉莎白|（裹著棉被）不要...再讓我睡五分鐘...不，五小時...
+
+SAY|侍衛隊長|您已經睡了整整兩天了。
+
+SAY|伊莉莎白|在那個臭烘烘的洞窟裡我根本不敢闔眼！現在我要把這輩子的覺都補回來！還有，你不准走，就在這裡守著我。
+
+CHARA|SHOW|Captain_happy|right
+SAY|侍衛隊長|...遵命。我會一直守在這裡，直到您睡飽為止。
+
+SAY|系統|【HAPPY END - 劫後餘生的安眠】
+
+LABEL|end_script
+CHARA|CLEAR
+SAY|系統|感謝遊玩。

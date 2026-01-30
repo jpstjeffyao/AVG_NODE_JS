@@ -128,6 +128,14 @@ export class AssetManager implements IGameModule {
     }
 
     /**
+     * 從快取中獲取資源
+     * @param key 資源識別碼
+     */
+    public getAsset(key: string): HTMLImageElement | HTMLAudioElement | undefined {
+        return this.cache.get(key);
+    }
+
+    /**
      * 檢查資源快取，若無則嘗試從多個預期副檔名中載入資源。
      * 此設計允許腳本只需寫檔名 (如 'bg_room')，系統會自動嘗試 .png, .jpg 等。
      * @param key 資源原始名稱 (不含副檔名)
@@ -146,6 +154,7 @@ export class AssetManager implements IGameModule {
         // 嘗試不同的副檔名
         for (const ext of this.supportedExtensions) {
             const url = `${subDir}${key}${ext}`;
+            console.log(`[AssetManager] 嘗試載入資源 URL: ${url}`);
             console.log(`[AssetManager] 嘗試載入資源 URL: ${url}`);
             try {
                 await this.load(key, url);

@@ -1,14 +1,39 @@
 import { CharacterModule } from '../modules/CharacterModule';
+import { AssetManager } from '../modules/AssetManager';
+import AudioManager from '../modules/AudioManager';
+import { StateManager } from './StateManager';
+import { ScriptEngine } from '../modules/ScriptEngine';
+import { UIModule } from '../modules/UIModule';
 
 export class GameKernel {
     private static instance: GameKernel;
 
+    public assetManager: AssetManager;
     public characterModule: CharacterModule;
+    public stateManager: StateManager;
+    public scriptEngine: ScriptEngine;
+    public uiModule: UIModule;
+    public audio: AudioManager;
     public modules: any[] = [];
 
     private constructor() {
-        this.characterModule = new CharacterModule();
+        // 1. 核心管理器
+        this.assetManager = new AssetManager();
+        this.stateManager = new StateManager();
+        
+        // 2. 功能模組
+        this.characterModule = new CharacterModule(this.assetManager);
+        this.audio = new AudioManager();
+        this.scriptEngine = new ScriptEngine(this.stateManager, this);
+        this.uiModule = new UIModule();
+
+        // 3. 註冊模組
+        this.registerModule(this.assetManager);
+        this.registerModule(this.stateManager);
         this.registerModule(this.characterModule);
+        this.registerModule(this.audio);
+        this.registerModule(this.scriptEngine);
+        this.registerModule(this.uiModule);
     }
 
     public static getInstance(): GameKernel {
@@ -34,6 +59,12 @@ export class GameKernel {
 
     public boot(): void {
         for (const module of this.modules) {
+            if (module === this.audio) {
+                this.audio.shutdown();
+            }
+            if (module === this.audio) {
+                this.audio.update();
+            }
             if (module && typeof module.initialize === 'function') {
                 try {
                     module.initialize();

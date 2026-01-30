@@ -1,6 +1,18 @@
 import { GameKernel } from '../src/core/GameKernel';
 import { IGameModule } from '../src/core/IGameModule';
 
+// Mock Audio for Node.js environment
+beforeAll(() => {
+    global.Audio = jest.fn().mockImplementation(() => ({
+        volume: 1,
+        paused: true,
+        play: jest.fn(),
+        pause: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn()
+    }));
+});
+
 describe('GameKernel', () => {
     beforeEach(() => {
         // @ts-ignore
@@ -79,27 +91,20 @@ describe('GameKernel', () => {
         consoleSpy.mockRestore();
     });
 
-    test('onUserClick should check if window and ScriptEngine exist', () => {
+    test('onUserClick should check if window and ScriptEngine exist', async () => {
         const kernel = GameKernel.getInstance();
         
         // Mock window.ScriptEngine
-        const mockNext = jest.fn();
+        const mockNext = jest.fn().mockResolvedValue(undefined);
+        
+        // Mock a module that acts as ScriptEngine inside kernel
         const mockScriptEngine = {
-            getInstance: () => ({
-                next: mockNext
-            })
+            moduleName: "ScriptEngine",
+            next: mockNext
         };
-
-        // In node environment, window is undefined by default. 
-        // Our code has a check 'typeof window !== "undefined"'
+        kernel.registerModule(mockScriptEngine);
         
-        // Let's temporarily mock window
-        const originalWindow = global.window;
-        (global as any).window = { ScriptEngine: mockScriptEngine };
-        
-        kernel.onUserClick();
+        await kernel.onUserClick();
         expect(mockNext).toHaveBeenCalled();
-        
-        (global as any).window = originalWindow;
     });
 });

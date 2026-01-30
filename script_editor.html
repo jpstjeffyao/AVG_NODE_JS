@@ -145,6 +145,14 @@
         <button id="run-button">執行腳本 (Run)</button>
         <!-- 載入預設劇本範本的按鈕 -->
         <button id="load-example-btn">載入範例</button>
+
+        <!-- 檔案上傳 -->
+        <input type="file" id="file-uploader" accept=".txt,.md" style="display: none;">
+        <button id="upload-script-btn">上傳腳本</button>
+        <div>
+            <input type="checkbox" id="overwrite-main-checkbox">
+            <label for="overwrite-main-checkbox">覆蓋主腳本</label>
+        </div>
     </div>
 
     <!-- 右側主內容區：目前用於顯示即時語法分析預覽 -->

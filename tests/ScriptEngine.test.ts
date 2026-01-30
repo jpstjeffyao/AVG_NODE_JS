@@ -1,13 +1,38 @@
-import { ScriptEngine } from '../src/modules/ScriptEngine';
-import { StateManager } from '../src/core/StateManager';
+import { ScriptEngine } from '@modules/ScriptEngine';
+import { StateManager } from '@core/StateManager';
+import { GameKernel } from '@core/GameKernel';
+
+// Mock Audio for Node.js environment
+beforeAll(() => {
+    global.Audio = jest.fn().mockImplementation(() => ({
+        volume: 1,
+        paused: true,
+        play: jest.fn(),
+        pause: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn()
+    }));
+});
 
 describe('ScriptEngine', () => {
     let stateManager: StateManager;
     let scriptEngine: ScriptEngine;
+    let kernel: GameKernel;
 
     beforeEach(() => {
         stateManager = new StateManager();
-        scriptEngine = new ScriptEngine(stateManager);
+        // Mock window.GameKernel for ScriptEngine
+        (global as any).window = {
+            GameKernel: {
+                getInstance: () => GameKernel.getInstance()
+            }
+        };
+        kernel = GameKernel.getInstance();
+        scriptEngine = new ScriptEngine(stateManager, kernel);
+    });
+
+    afterEach(() => {
+        delete (global as any).window;
     });
 
     test('加載劇本並執行指令', () => {

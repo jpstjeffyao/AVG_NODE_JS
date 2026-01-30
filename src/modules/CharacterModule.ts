@@ -1,4 +1,5 @@
 import { IGameModule } from "../core/IGameModule";
+import { AssetManager } from "./AssetManager";
 
 /**
  * 定義立繪顯示位置
@@ -9,8 +10,14 @@ export type CharacterPosition = "left" | "right" | "center";
  * CharacterModule 負責管理遊戲中的立繪（角色圖像）顯示與切換
  */
 export class CharacterModule implements IGameModule {
+    public moduleName: string = "CharacterModule";
     private container: HTMLElement | null = null;
     private activeCharacters: Map<CharacterPosition, HTMLImageElement> = new Map();
+    private assetManager: AssetManager;
+
+    constructor(assetManager: AssetManager) {
+        this.assetManager = assetManager;
+    }
 
     /**
      * 初始化模組，取得立繪容器元素
@@ -18,7 +25,11 @@ export class CharacterModule implements IGameModule {
     public setup(): void {
         this.container = document.querySelector("#character-container");
         if (!this.container) {
-            throw new Error("'#character-container' not found in the DOM.");
+            // Fallback to spriteLayer if the dedicated container doesn't exist
+            this.container = document.querySelector("#sprite-layer");
+        }
+        if (!this.container) {
+            console.error("Neither '#character-container' nor '#sprite-layer' found in the DOM.");
         }
     }
 
@@ -44,29 +55,13 @@ export class CharacterModule implements IGameModule {
     }
 
     /**
-     * 顯示或替換指定位置的立繪
-     * @param characterId 角色標記
-     * @param expression 表情標記
+     * 顯示或替換指定位置的立繪，委託 AssetManager 處理載入與渲染
+     * @param characterId 圖像識別碼
      * @param position 顯示位置
+     * @param name 角色名稱（用於高亮）
      */
-    public show(characterId: string, expression: string, position: CharacterPosition): void {
-        const src = `/assets/char/${characterId}_${expression}.png`;
-        let img = this.activeCharacters.get(position);
-
-        if (img) {
-            // 如果該位置已有立繪，更新 src
-            img.src = src;
-        } else {
-            // 否則建立新的 img 元素
-            img = document.createElement("img");
-            img.src = src;
-            this.container?.appendChild(img);
-            this.activeCharacters.set(position, img);
-        }
-
-        // 設定 CSS Class
-        img.classList.remove("chara-left", "chara-right", "chara-center");
-        img.classList.add(`chara-${position}`);
+    public async show(characterId: string, position: CharacterPosition, name: string = ""): Promise<void> {
+        await this.assetManager.handleSpriteCommand(name, position, characterId);
     }
 
     /**

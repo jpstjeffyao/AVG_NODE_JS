@@ -1,6 +1,7 @@
 import { IGameModule } from '../core/IGameModule';
 import { StateManager } from '../core/StateManager';
 import { CharacterPosition } from './CharacterModule';
+import { GameKernel } from '../core/GameKernel';
 
 /**
  * 腳本引擎，負責解析與執行遊戲腳本指令
@@ -22,7 +23,7 @@ export class ScriptEngine implements IGameModule {
      */
     private positionMap: Map<string, string> = new Map();
 
-    constructor(stateManager: StateManager) {
+    constructor(stateManager: StateManager, private kernel: GameKernel) {
         this.stateManager = stateManager;
     }
 
@@ -41,6 +42,7 @@ export class ScriptEngine implements IGameModule {
     private scanLabels(): void {
         this.labels = {};
         this.scriptLines.forEach((line, index) => {
+            if (line.trim().startsWith('#')) return;
             const parts = line.split('|');
             if (parts[0] === 'LABEL') {
                 this.labels[parts[1]] = index;
@@ -71,6 +73,50 @@ export class ScriptEngine implements IGameModule {
      * 改為非同步方法，以支援 await 資源載入。
      */
     private async executeLine(line: string): Promise<void> {
+        if (line.trim().startsWith('#')) return;
+        const commandRegex = /^\s*\[([A-Z_]+):\s*(.+)\]\s*$/;
+        const match = line.match(commandRegex);
+        if (match) {
+            const command = match[1];
+            const args = match[2].split(',').map(arg => arg.trim());
+            switch (command) {
+                case 'BGM_PLAY':
+                    const bgmKey = args[0];
+                    const bgmVol = parseFloat(args[1]);
+                    const bgmLoop = args[2] === 'true';
+                    const assetMgr = this.kernel.assetManager;
+                    
+                    this.isWaitingForAsset = true;
+                    assetMgr.ensureLoaded(bgmKey, 'music').then(success => {
+                        this.isWaitingForAsset = false;
+                        if (success) {
+                            const audioAsset = assetMgr.getAsset(bgmKey);
+                            if (audioAsset instanceof HTMLAudioElement) {
+                                this.kernel.audio.playBGM(audioAsset, bgmVol, bgmLoop);
+                            } else {
+                                // 容錯：若 getAsset 失敗但 ensureLoaded 成功，嘗試直接傳路徑
+                                this.kernel.audio.playBGM(bgmKey, bgmVol, bgmLoop);
+                            }
+                        }
+                    });
+                    break;
+                case 'BGM_STOP':
+                    this.kernel.audio.stopBGM();
+                    break;
+                case 'BGM_FADE_OUT':
+                    this.kernel.audio.fadeOutBGM(parseFloat(args[0]));
+                    break;
+                case 'BGM_FADE_IN':
+                    this.kernel.audio.fadeInBGM(parseFloat(args[0]), args[1], parseFloat(args[2]), args[3] === 'true');
+                    break;
+                case 'SFX_PLAY':
+                    this.kernel.audio.playSFX(args[0], parseFloat(args[1]));
+                    break;
+                default:
+                    console.error(`Unknown audio command: ${command}`);
+            }
+            return;
+        }
         const parts = line.split('|');
         const command = parts[0];
 
@@ -228,10 +274,18 @@ export class ScriptEngine implements IGameModule {
 
                 switch (subCommand) {
                     case 'SHOW':
-                        const characterId = parts[2];
-                        const expression = parts[3];
-                        const position = parts[4] as CharacterPosition;
-                        charModule.show(characterId, expression, position);
+                        const charImg = parts[2]; // 圖像 Key (imgKey)
+                        const charPos = parts[3] as CharacterPosition; // 位置 (position)
+                        const charName = charImg.split('_')[0]; // 角色名稱由 imgKey 推導
+                        // 更新位置對照表以便高亮處理
+                        this.positionMap.set(charPos, charName);
+                        // 非同步執行 charModule.show 並等待
+                        this.isWaitingForAsset = true;
+                        try {
+                            await charModule.show(charImg, charPos, charName);
+                        } finally {
+                            this.isWaitingForAsset = false;
+                        }
                         break;
                     case 'HIDE':
                         const hidePos = parts[2] as CharacterPosition;
@@ -246,10 +300,22 @@ export class ScriptEngine implements IGameModule {
                 this.stateManager.setValue(parts[1], parseInt(parts[2]));
                 break;
             case 'BGM':
-                const bgmKey = parts[1];
+                const simpleBgmKey = parts[1];
                 const audioModuleBGM = modules.find((m: any) => m.moduleName === "AudioManager");
-                if (audioModuleBGM) {
-                    audioModuleBGM.playBGM(bgmKey);
+                const assetMgrSimple = modules.find((m: any) => m.moduleName === "AssetManager");
+                if (audioModuleBGM && assetMgrSimple) {
+                    this.isWaitingForAsset = true;
+                    assetMgrSimple.ensureLoaded(simpleBgmKey, 'music').then((success: boolean) => {
+                        this.isWaitingForAsset = false;
+                        if (success) {
+                            const audioAsset = assetMgrSimple.getAsset(simpleBgmKey);
+                            if (audioAsset instanceof HTMLAudioElement) {
+                                audioModuleBGM.playBGM(audioAsset, 1.0, true);
+                            } else {
+                                audioModuleBGM.playBGM(simpleBgmKey, 1.0, true);
+                            }
+                        }
+                    });
                 }
                 break;
             case 'SE':
