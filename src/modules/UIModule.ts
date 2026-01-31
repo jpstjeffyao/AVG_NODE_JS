@@ -1,10 +1,12 @@
 import { IGameModule } from '../core/IGameModule';
+import { GameKernel } from '../core/GameKernel';
 
 /**
  * UI 模組，負責對話視窗、選項選單及選單畫面的顯示與互動
  */
 export class UIModule implements IGameModule {
   moduleName = "UIModule";
+  private readonly kernel: GameKernel;
   private _container: HTMLElement | null = null; // 對話 UI 容器
   private _menuScreen: HTMLElement | null = null; // MENU 畫面容器
   private _dialogContainer: HTMLElement | null = null; // 同 _container，供內部更清晰引用
@@ -13,6 +15,10 @@ export class UIModule implements IGameModule {
   private _fullText: string = "";
   private _loadingOverlay: HTMLElement | null = null;
   private _fadeOverlay: HTMLElement | null = null;
+
+  constructor(kernel: GameKernel) {
+    this.kernel = kernel;
+  }
 
   /**
    * 外部查詢目前是否正在執行打字機文字渲染
@@ -25,7 +31,7 @@ export class UIModule implements IGameModule {
    * 處理全螢幕點擊事件，用於推進遊戲腳本或跳過打字動畫
    */
   private handleDocumentClick = (): void => {
-    (window as any).GameKernel?.getInstance()?.onUserClick();
+    this.kernel?.onUserClick();
   };
 
   /**
@@ -44,7 +50,7 @@ export class UIModule implements IGameModule {
       
       if (!isInput) {
         event.preventDefault(); // 防止頁面滾動
-        (window as any).GameKernel?.getInstance()?.onUserClick();
+        this.kernel?.onUserClick();
       }
     }
   };
@@ -68,9 +74,18 @@ export class UIModule implements IGameModule {
     const btnLoadGame = document.getElementById("btn-load-game");
     const btnSettings = document.getElementById("btn-settings");
 
-    if (btnNewGame) btnNewGame.addEventListener("click", () => this.onNewGameClick());
-    if (btnLoadGame) btnLoadGame.addEventListener("click", () => this.onLoadGameClick());
-    if (btnSettings) btnSettings.addEventListener("click", () => this.onSettingsClick());
+    if (btnNewGame) btnNewGame.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.onNewGameClick();
+    });
+    if (btnLoadGame) btnLoadGame.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.onLoadGameClick();
+    });
+    if (btnSettings) btnSettings.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.onSettingsClick();
+    });
 
     // 設定初始視覺狀態：進入頁面時先顯示主選單，對話框預設隱藏
     this.showMenu();
@@ -88,15 +103,14 @@ export class UIModule implements IGameModule {
     // 監聽淡出完成事件，自動回到主選單
     window.addEventListener('avg_fade_complete', async () => {
       console.log("[UIModule] Received avg_fade_complete event");
-      const kernel = (window as any).GameKernel?.getInstance();
-      if (kernel) {
+      if (this.kernel) {
         // 僅於劇情結束並完成淡出（STATE_FADING_OUT）時觸發
-        if (kernel.stateManager.getState() === "STATE_FADING_OUT") {
-          kernel.stateManager.setState("STATE_TITLE");
+        if (this.kernel.stateManager.getState() === "STATE_FADING_OUT") {
+          this.kernel.stateManager.setState("STATE_TITLE");
           this.hideDialog();
 
           // 確保背景更換回主畫面圖片
-          const assetModule = kernel.modules.find((m: any) => m.moduleName === "AssetManager");
+          const assetModule = this.kernel.assetManager;
           if (assetModule) {
             await assetModule.setBG("Main");
           }
@@ -205,7 +219,7 @@ export class UIModule implements IGameModule {
     this.showDialog();
 
     // 透過暴露在 window 的 kernel 啟動遊戲
-    const kernel = (window as any).GameKernel?.getInstance();
+    const kernel = this.kernel;
     if (kernel) {
       kernel.startGame();
     }

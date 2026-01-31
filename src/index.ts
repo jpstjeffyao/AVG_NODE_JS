@@ -8,7 +8,7 @@ const gameAssets = [
 
 async function bootstrap() {
    console.log("Bootstrap starting...");
-   const kernel = GameKernel.getInstance();
+   const kernel = new GameKernel();
 
     // 將 kernel 實例暴露到 window 物件上
     (window as any).kernel = kernel;
@@ -155,7 +155,7 @@ async function bootstrap() {
        "SAY|系統|——劇情範本結束。"
        ]);
     // 啟動 (這會初始化所有模組，包含顯示 MENU)
-    kernel.boot();
+    kernel.initializeModules();
 
 
     console.log("Game Kernel Booted!");
@@ -163,7 +163,8 @@ async function bootstrap() {
     // 開啟編輯器按鈕邏輯
     const openEditorBtn = document.getElementById('open-editor-button');
     if (openEditorBtn) {
-        openEditorBtn.addEventListener('click', () => {
+        openEditorBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             window.open('script_editor.html', 'ScriptEditor', 'width=800,height=600');
         });
     }
@@ -179,7 +180,7 @@ async function bootstrap() {
             
             // 重新載入並執行新劇本
             kernel.loadScript(scriptLines);
-            kernel.boot();
+            kernel.initializeModules();
             kernel.start();
             
             // 透過 UIModule 隱藏選單與顯示對話框
