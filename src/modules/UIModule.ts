@@ -249,9 +249,6 @@ export class UIModule implements IGameModule {
       nameBox.textContent = name;
     }
 
-    // 當有人說話時，通知畫面更新立繪亮度，突顯當前發言者
-    this.updateSpriteHighlights(name);
-
     if (contentBox) {
       this._fullText = content;
       contentBox.textContent = ""; // 先清空文字
@@ -268,38 +265,6 @@ export class UIModule implements IGameModule {
           this.completeTyping();
         }
       }, 40); // 每一格字元間隔 40 毫秒
-    }
-  }
-
-  /**
-   * 根據說話者名稱，高亮對應位置的立繪，其餘變暗
-   * @param speakerName 當前說話者
-   */
-  private updateSpriteHighlights(speakerName: string): void {
-    const kernel = (window as any).GameKernel?.getInstance();
-    const assetModule = kernel?.modules.find((m: any) => m.moduleName === "AssetManager");
-
-    if (assetModule) {
-      // 遍歷所有位置，檢查是否有該角色的立繪
-      ['left', 'center', 'right'].forEach(pos => {
-        const slot = (assetModule as any).spriteSlots[pos];
-        if (slot) {
-          const img = slot.querySelector('img');
-          
-          let brightness = 1.0;
-          if (speakerName && speakerName.trim() !== "") {
-            // 有明確說話者時，非說話者變暗 (0.6)
-            const isSpeaker = img && img.dataset.name === speakerName;
-            brightness = isSpeaker ? 1.0 : 0.6;
-          } else {
-            // 若 speakerName 為空（旁白），則所有角色亮度設為 1.0
-            brightness = 1.0;
-          }
-          if (img) {
-            assetModule.setSpriteHighlight(pos, brightness);
-          }
-        }
-      });
     }
   }
 

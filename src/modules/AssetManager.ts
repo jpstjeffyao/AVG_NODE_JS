@@ -251,11 +251,14 @@ export class AssetManager implements IGameModule {
             return;
         }
 
+        // 當設置新的立繪時，無論如何都先重設為全亮狀態
+        this.setSpriteHighlight(position, 1.0);
+
         // 移除舊的圖片內容，確保一個插槽只有一個角色
         slot.innerHTML = '';
         console.log(`[AssetManager] setSprite - 找到 slot:`, slot);
 
-        const imgAsset = this.cache.get(key);
+        const imgAsset = this.cache.get(key.split('/').pop() || key);
         if (imgAsset) {
             const img = document.createElement('img');
             img.src = imgAsset.src;
@@ -291,6 +294,7 @@ export class AssetManager implements IGameModule {
      */
     setSpriteHighlight(position: string, brightness: number): void {
         const slot = this.spriteSlots[position];
+        console.log(`[AssetManager] RENDER STATUS: Setting position "${position}" brightness to ${brightness}.`);
         if (slot) {
             slot.style.filter = `brightness(${brightness})`;
         }

@@ -107,131 +107,122 @@ export class ScriptEngine implements IGameModule {
      */
     private async executeLine(line: string): Promise<void> {
         if (line.trim().startsWith('#')) return;
-        const commandRegex = /^\s*\[([A-Z_]+):\s*(.+)\]\s*$/;
+
+        const commandRegex = /\[([A-Z_]+):(.*)\]/;
         const match = line.match(commandRegex);
+
         if (match) {
-            const command = match[1];
+            const command = match[1].trim();
             const args = match[2].split(',').map(arg => arg.trim());
-            switch (command) {
-                case 'BGM_PLAY':
-                    const bgmKey = args[0];
-                    const bgmVol = parseFloat(args[1]);
-                    const bgmLoop = args[2] === 'true';
-                    const assetMgr = this.kernel.assetManager;
-                    
-                    this.isWaitingForAsset = true;
-                    assetMgr.ensureLoaded(bgmKey, 'music').then(success => {
-                        this.isWaitingForAsset = false;
+            const assetMgr = this.kernel.assetManager;
+
+            this.isWaitingForAsset = true;
+            try {
+                switch (command) {
+                    case 'BGM_PLAY': {
+                        const bgmKey = args[0];
+                        const bgmVol = parseFloat(args[1]);
+                        const bgmLoop = args[2] === 'true';
+                        const success = await assetMgr.ensureLoaded(bgmKey, 'music');
                         if (success) {
-                            const audioAsset = assetMgr.getAsset(bgmKey);
+                            const assetKey = bgmKey.split('/').pop() || bgmKey;
+                            const audioAsset = assetMgr.getAsset(assetKey);
                             if (audioAsset instanceof HTMLAudioElement) {
                                 this.kernel.audio.playBGM(audioAsset, bgmVol, bgmLoop);
-                            } else {
-                                // 容錯：若 getAsset 失敗但 ensureLoaded 成功，嘗試直接傳路徑
-                                this.kernel.audio.playBGM(bgmKey, bgmVol, bgmLoop);
                             }
                         }
-                    });
-                    break;
-                case 'BGM_STOP':
-                    this.kernel.audio.stopBGM();
-                    break;
-                case 'BGM_FADE_OUT':
-                    this.kernel.audio.fadeOutBGM(parseFloat(args[0]));
-                    break;
-                case 'BGM_FADE_IN':
-                    this.kernel.audio.fadeInBGM(parseFloat(args[0]), args[1], parseFloat(args[2]), args[3] === 'true');
-                    break;
-                case 'SFX_PLAY':
-                    this.kernel.audio.playSFX(args[0], parseFloat(args[1]));
-                    break;
-                default:
-                    console.error(`Unknown audio command: ${command}`);
+                        break;
+                    }
+                    case 'BGM_STOP':
+                        this.kernel.audio.stopBGM();
+                        break;
+                    case 'BGM_FADE_OUT':
+                        this.kernel.audio.fadeOutBGM(parseFloat(args[0]));
+                        break;
+                    case 'BGM_FADE_IN':
+                        this.kernel.audio.fadeInBGM(parseFloat(args[0]), args[1], parseFloat(args[2]), args[3] === 'true');
+                        break;
+                    case 'SFX_PLAY': {
+                        const sfxKey = args[0];
+                        const sfxVol = parseFloat(args[1]);
+                        const success = await assetMgr.ensureLoaded(sfxKey, 'sound');
+                        if (success) {
+                            const assetKey = sfxKey.split('/').pop() || sfxKey;
+                            const audioAsset = assetMgr.getAsset(assetKey);
+                            if (audioAsset instanceof HTMLAudioElement) {
+                                this.kernel.audio.playSFX(audioAsset.src, sfxVol);
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        console.error(`Unknown audio command: ${command}`);
+                }
+            } finally {
+                this.isWaitingForAsset = false;
             }
             return;
         }
+        
         const parts = line.split('|');
         const command = parts[0];
 
-        // 取得單例 Kernel 實例，以便存取其他模組 (如 AssetManager, UIModule)
-        const kernel = (window as any).GameKernel?.getInstance();
-        const modules = kernel?.modules || [];
-
         switch (command) {
             case 'LABEL':
-                // LABEL 僅作為導覽標記，執行過程中無需邏輯處理
                 break;
             case 'GOTO':
-                // 跳轉指令：GOTO|標籤名稱
                 const targetLabel = parts[1];
                 if (this.labels[targetLabel] !== undefined) {
-                    // 將當前行數索引移動到標籤所在位置
                     this.currentLineIndex = this.labels[targetLabel];
                 } else {
                     console.error(`Label not found: ${targetLabel}`);
                 }
                 break;
             case 'CHOICE':
-                // 分支選項指令：CHOICE|選項1:跳轉標籤1|選項2:跳轉標籤2
-                const uiModuleChoice = modules.find((m: any) => m.moduleName === "UIModule");
-
+                const uiModuleChoice = this.kernel.uiModule;
                 this.isWaitingForChoice = true;
                 const choices: string[] = [];
                 const targetLabels: string[] = [];
-
-                // 解析選項文字與對應的標籤跳轉目標
                 for (let i = 1; i < parts.length; i++) {
                     const choiceParts = parts[i].split(':');
                     choices.push(choiceParts[0]);
                     targetLabels.push(choiceParts[1]);
                 }
-
-                // 呼叫 UIModule 渲染選項按鈕
                 if (uiModuleChoice) {
                     uiModuleChoice.clearDialog();
                     uiModuleChoice.showChoices(choices);
-
-                    // 定義點擊選項後的回呼函式
                     const handleChoice = (event: any) => {
                         const selectedLabel = event.detail;
                         const choiceIndex = choices.indexOf(selectedLabel);
                         if (choiceIndex !== -1) {
                             const target = targetLabels[choiceIndex];
                             if (this.labels[target] !== undefined) {
-                                // 執行跳轉並解除等待狀態
                                 this.currentLineIndex = this.labels[target];
                                 this.isWaitingForChoice = false;
-                                // 清除監聽器以防重複觸發
                                 window.removeEventListener('choiceMade', handleChoice);
-                                // 選擇後立即自動執行跳轉後的首行指令
-                                // 選擇後立即自動執行跳轉後的首行指令 (非同步呼叫)
                                 this.next();
                             }
                         }
                     };
-
                     window.addEventListener('choiceMade', handleChoice);
                 }
                 break;
             case 'SAY':
-                // 對話指令：SAY|說話者名稱|對話內容
                 const speaker = parts[1];
                 const content = parts[2] || "";
                 console.log(`[ScriptEngine] SAY 指令解析 - speaker: ${speaker}, content: ${content}`);
-
-                // 處理立繪高亮：根據當前說話者是誰，調整畫面中各個位置立繪的亮度
-                // 非說話者的立繪會稍微變暗 (0.6)，說話者則保持原樣 (1.0)
-                const assetModuleSAY = modules.find((m: any) => m.moduleName === "AssetManager");
+                const assetModuleSAY = this.kernel.assetManager;
                 if (assetModuleSAY) {
+                    const internalCharID = this.characterNameMap[speaker] || speaker;
+                    console.log(`[ScriptEngine] Highlighting check. Speaker: "${speaker}", Mapped Speaker ID: "${internalCharID}"`);
+                    console.log('[ScriptEngine] Current positionMap:', this.positionMap);
                     this.positionMap.forEach((charID, pos) => {
-                        const internalCharID = this.characterNameMap[speaker] || speaker;
                         const brightness = (charID === internalCharID) ? 1.0 : 0.6;
+                        console.log(`[ScriptEngine]   - Checking Pos: "${pos}", CharID: "${charID}". Comparing with SpeakerID: "${internalCharID}". Setting brightness to: ${brightness}`);
                         assetModuleSAY.setSpriteHighlight(pos, brightness);
                     });
                 }
-
-                // 通知 UIModule 進行打字機效果渲染與名稱顯示
-                const uiModule = modules.find((m: any) => m.moduleName === "UIModule");
+                const uiModule = this.kernel.uiModule;
                 if (uiModule) {
                     console.log(`[ScriptEngine] 呼叫 UIModule.renderText - speaker: ${speaker}, content: ${content}`);
                     uiModule.showDialog();
@@ -239,124 +230,86 @@ export class ScriptEngine implements IGameModule {
                 }
                 break;
             case 'BG':
-                // 背景指令：BG|背景圖識別碼
-                const bgKey = parts[1];
-                const assetModuleBG = modules.find((m: any) => m.moduleName === "AssetManager");
-                if (assetModuleBG) {
-                    // 設定資源載入等待狀態
-                    this.isWaitingForAsset = true;
-                    try {
-                        // 呼叫非同步的 setBG 並等待完成
-                        await assetModuleBG.setBG(bgKey);
-                    } finally {
-                        this.isWaitingForAsset = false;
-                    }
+                this.isWaitingForAsset = true;
+                try {
+                    await this.kernel.assetManager.setBG(parts[1]);
+                } finally {
+                    this.isWaitingForAsset = false;
                 }
                 break;
             case 'SPRITE':
-                // 立繪指令：SPRITE|角色識別碼|放置位置|圖像檔名稱
-                // 範例: SPRITE|Hero|left|hero_happy
                 if (parts.length !== 4) {
-                    console.error(
-                        `SPRITE 指令格式錯誤。預期格式: 'SPRITE|角色Key|位置|圖像Key'，但收到的指令是: '${line}'`
-                    );
+                    console.error(`SPRITE 指令格式錯誤。 '${line}'`);
                     break;
                 }
-                const charKey = parts[1];
-                const spritePos = parts[2]; // 'left', 'center', 'right'
-                const imgKey = parts[3];
-
-                console.log(`[ScriptEngine] SPRITE 指令解析 - charKey: ${charKey}, position: ${spritePos}, imgKey: ${imgKey}`);
-
-                // 更新內部對照表：讓引擎知道現在 'left' 位置站的是 'Hero'
-                this.positionMap.set(spritePos, charKey);
-
-                const assetModuleSprite = modules.find((m: any) => m.moduleName === "AssetManager");
-                if (assetModuleSprite) {
-                    // 設定資源載入等待狀態
-                    this.isWaitingForAsset = true;
-                    try {
-                        // 委託 AssetManager 處理圖像載入與 DOM 更新，並等待完成
-                        await assetModuleSprite.handleSpriteCommand(charKey, spritePos, imgKey);
-                    } finally {
-                        this.isWaitingForAsset = false;
-                    }
+                this.isWaitingForAsset = true;
+                try {
+                    const charKey = parts[1];
+                    const spritePos = parts[2];
+                    const imgKey = parts[3];
+                    this.positionMap.set(spritePos, charKey);
+                    await this.kernel.assetManager.handleSpriteCommand(charKey, spritePos, imgKey);
+                } finally {
+                    this.isWaitingForAsset = false;
                 }
                 break;
             case 'SPRITE_CLR':
-                // 清除立繪指令：SPRITE_CLR|位置
                 if (parts.length !== 2) {
-                    console.error(
-                        `SPRITE_CLR 指令格式錯誤。預期格式: 'SPRITE_CLR|position'，但收到的指令是: '${line}'`
-                    );
+                    console.error(`SPRITE_CLR 指令格式錯誤。 '${line}'`);
                     break;
                 }
                 const clrPos = parts[1];
-                // 從對照表中移除該位置的角色資訊
                 this.positionMap.delete(clrPos);
-                
-                const assetModuleClr = modules.find((m: any) => m.moduleName === "AssetManager");
-                if (assetModuleClr && assetModuleClr.clearSprite) {
-                    // 通知 AssetManager 移除對應 DOM 元素
-                    assetModuleClr.clearSprite(clrPos);
-                }
+                this.kernel.assetManager.clearSprite(clrPos);
                 break;
             case 'CHARA':
                 const subCommand = parts[1];
-                const charModule = kernel?.characterModule;
+                const charModule = this.kernel.characterModule;
                 if (!charModule) break;
-
-                switch (subCommand) {
-                    case 'SHOW':
-                        const charImg = parts[2]; // 圖像 Key (imgKey)
-                        const charPos = parts[3] as CharacterPosition; // 位置 (position)
-                        const charName = charImg.split('_')[0]; // 角色名稱由 imgKey 推導
-                        // 更新位置對照表以便高亮處理
-                        this.positionMap.set(charPos, charName);
-                        // 非同步執行 charModule.show 並等待
-                        this.isWaitingForAsset = true;
-                        try {
+                this.isWaitingForAsset = true;
+                try {
+                    switch (subCommand) {
+                        case 'SHOW':
+                            const charImg = parts[2];
+                            const charPos = parts[3] as CharacterPosition;
+                            const charName = charImg.split('_')[0];
+                            this.positionMap.set(charPos, charName);
                             await charModule.show(charImg, charPos, charName);
-                        } finally {
-                            this.isWaitingForAsset = false;
-                        }
-                        break;
-                    case 'HIDE':
-                        const hidePos = parts[2] as CharacterPosition;
-                        charModule.hide(hidePos);
-                        break;
-                    case 'CLEAR':
-                        charModule.clear();
-                        break;
+                            break;
+                        case 'HIDE':
+                            charModule.hide(parts[2] as CharacterPosition);
+                            break;
+                        case 'CLEAR':
+                            charModule.clear();
+                            break;
+                    }
+                } finally {
+                    this.isWaitingForAsset = false;
                 }
                 break;
             case 'SET':
                 this.stateManager.setValue(parts[1], parseInt(parts[2]));
                 break;
             case 'BGM':
-                const simpleBgmKey = parts[1];
-                const audioModuleBGM = modules.find((m: any) => m.moduleName === "AudioManager");
-                const assetMgrSimple = modules.find((m: any) => m.moduleName === "AssetManager");
-                if (audioModuleBGM && assetMgrSimple) {
-                    this.isWaitingForAsset = true;
-                    assetMgrSimple.ensureLoaded(simpleBgmKey, 'music').then((success: boolean) => {
-                        this.isWaitingForAsset = false;
-                        if (success) {
-                            const audioAsset = assetMgrSimple.getAsset(simpleBgmKey);
-                            if (audioAsset instanceof HTMLAudioElement) {
-                                audioModuleBGM.playBGM(audioAsset, 1.0, true);
+            case 'SE':
+                 this.isWaitingForAsset = true;
+                 try {
+                    const key = parts[1];
+                    const type = command === 'BGM' ? 'music' : 'sound';
+                    const success = await this.kernel.assetManager.ensureLoaded(key, type);
+                    if (success) {
+                        const assetKey = key.split('/').pop() || key;
+                        const audioAsset = this.kernel.assetManager.getAsset(assetKey);
+                        if (audioAsset instanceof HTMLAudioElement) {
+                            if (command === 'BGM') {
+                                this.kernel.audio.playBGM(audioAsset, 1.0, true);
                             } else {
-                                audioModuleBGM.playBGM(simpleBgmKey, 1.0, true);
+                                this.kernel.audio.playSFX(audioAsset.src, 1.0);
                             }
                         }
-                    });
-                }
-                break;
-            case 'SE':
-                const seKey = parts[1];
-                const audioModuleSE = modules.find((m: any) => m.moduleName === "AudioManager");
-                if (audioModuleSE) {
-                    audioModuleSE.playSE(seKey);
+                    }
+                } finally {
+                    this.isWaitingForAsset = false;
                 }
                 break;
             case 'IF':
