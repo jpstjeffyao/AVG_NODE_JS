@@ -16,10 +16,10 @@ export class AssetManager implements IGameModule {
     private supportedExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg', '.gif'];
     // 指令類型與資源目錄的映射關係
     private typeSubDirs: { [key: string]: string } = {
-        'bg': '/assets/bg/',
-        'char': '/assets/char/',
-        'music': '/assets/music/',
-        'sound': '/assets/sound/',
+        'bg': '/bg/',
+        'char': '/char/',
+        'music': '/music/',
+        'sound': '/sound/',
     };
 
     constructor() {}
@@ -30,7 +30,6 @@ export class AssetManager implements IGameModule {
     async preload(assets: { key: string, src: string }[]): Promise<void> {
         const promises = assets.map(asset => this.load(asset.key, asset.src));
         await Promise.all(promises);
-        console.log(`[AssetManager] Preloaded ${this.cache.size} assets successfully.`);
     }
 
     /**
@@ -157,7 +156,8 @@ export class AssetManager implements IGameModule {
 
         // Case 1: Key is a full path
         if (key.includes('/')) {
-            const url = `/${key}`;
+            const pathWithoutAssets = key.startsWith('assets/') ? key.substring('assets/'.length) : key;
+            const url = `/${pathWithoutAssets}`;
             console.log(`[AssetManager] 嘗試載入資源 URL (直接路徑): ${url}`);
             try {
                 await this.load(assetCacheKey, url);
@@ -222,7 +222,6 @@ export class AssetManager implements IGameModule {
      * @param imgKey 圖像識別碼 (用於路徑檢索)
      */
     async handleSpriteCommand(charKey: string, position: string, imgKey: string): Promise<void> {
-        console.log(`[AssetManager] handleSpriteCommand - charKey: ${charKey}, position: ${position}, imgKey: ${imgKey}`);
         // 根據 圖像Key 生成完整資源路徑 (assets/char/{圖像Key}.png)
         // 使用 ensureLoaded 處理多種副檔名與路徑拼接
         const success = await this.ensureLoaded(imgKey, 'char');
@@ -244,7 +243,6 @@ export class AssetManager implements IGameModule {
      * @param name 綁定到 DOM 的角色名稱 (用於後續尋找對話者並高亮)
      */
     setSprite(key: string, position: string = 'center', name: string = ''): void {
-        console.log(`[AssetManager] setSprite - key: ${key}, position: ${position}, name: ${name}`);
         const slot = this.spriteSlots[position];
         if (!slot) {
             console.error(`[AssetManager] setSprite 錯誤：指定了無效的位置。預期為 'left', 'center', 'right'，但收到了 '${position}'。完整的指令參數為: key=${key}, name=${name}`);
@@ -256,8 +254,6 @@ export class AssetManager implements IGameModule {
 
         // 移除舊的圖片內容，確保一個插槽只有一個角色
         slot.innerHTML = '';
-        console.log(`[AssetManager] setSprite - 找到 slot:`, slot);
-
         const imgAsset = this.cache.get(key.split('/').pop() || key);
         if (imgAsset) {
             const img = document.createElement('img');
@@ -268,7 +264,6 @@ export class AssetManager implements IGameModule {
             img.style.maxWidth = '100%';
             img.style.objectFit = 'contain';
             slot.appendChild(img);
-            console.log("圖片已插入插槽", img);
         } else {
             // 防呆處理：若直接呼叫此函式但快取沒圖，則重新嘗試載入
             this.ensureLoaded(key, 'char').then(success => {
@@ -294,7 +289,6 @@ export class AssetManager implements IGameModule {
      */
     setSpriteHighlight(position: string, brightness: number): void {
         const slot = this.spriteSlots[position];
-        console.log(`[AssetManager] RENDER STATUS: Setting position "${position}" brightness to ${brightness}.`);
         if (slot) {
             slot.style.filter = `brightness(${brightness})`;
         }

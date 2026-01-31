@@ -210,21 +210,16 @@ export class ScriptEngine implements IGameModule {
             case 'SAY':
                 const speaker = parts[1];
                 const content = parts[2] || "";
-                console.log(`[ScriptEngine] SAY 指令解析 - speaker: ${speaker}, content: ${content}`);
                 const assetModuleSAY = this.kernel.assetManager;
                 if (assetModuleSAY) {
                     const internalCharID = this.characterNameMap[speaker] || speaker;
-                    console.log(`[ScriptEngine] Highlighting check. Speaker: "${speaker}", Mapped Speaker ID: "${internalCharID}"`);
-                    console.log('[ScriptEngine] Current positionMap:', this.positionMap);
                     this.positionMap.forEach((charID, pos) => {
                         const brightness = (charID === internalCharID) ? 1.0 : 0.6;
-                        console.log(`[ScriptEngine]   - Checking Pos: "${pos}", CharID: "${charID}". Comparing with SpeakerID: "${internalCharID}". Setting brightness to: ${brightness}`);
                         assetModuleSAY.setSpriteHighlight(pos, brightness);
                     });
                 }
                 const uiModule = this.kernel.uiModule;
                 if (uiModule) {
-                    console.log(`[ScriptEngine] 呼叫 UIModule.renderText - speaker: ${speaker}, content: ${content}`);
                     uiModule.showDialog();
                     uiModule.renderText(speaker, content);
                 }
