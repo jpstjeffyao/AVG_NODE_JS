@@ -136,6 +136,13 @@ export class AssetManager implements IGameModule {
     }
 
     /**
+     * 取得背景層的 DOM 元素
+     */
+    public getBGLayer(): HTMLDivElement {
+        return this.bgLayer;
+    }
+
+    /**
      * 檢查資源快取，若無則嘗試從多個預期副檔名中載入資源。
      * 此設計允許腳本只需寫檔名 (如 'bg_room')，系統會自動嘗試 .png, .jpg 等。
      * @param key 資源原始名稱 (不含副檔名)

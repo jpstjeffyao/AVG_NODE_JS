@@ -12,6 +12,7 @@ export class UIModule implements IGameModule {
   private _typingTimer: number | null = null;
   private _fullText: string = "";
   private _loadingOverlay: HTMLElement | null = null;
+  private _fadeOverlay: HTMLElement | null = null;
 
   /**
    * 外部查詢目前是否正在執行打字機文字渲染
@@ -82,6 +83,41 @@ export class UIModule implements IGameModule {
     // 監聽來自 AssetManager 的載入狀態事件，顯示/隱藏 Loading 畫面
     window.addEventListener('assetLoading', (e: any) => {
       this.toggleLoading(e.detail.isLoading);
+    });
+
+    // 監聽淡出完成事件，自動回到主選單
+    window.addEventListener('avg_fade_complete', async () => {
+      console.log("[UIModule] Received avg_fade_complete event");
+      const kernel = (window as any).GameKernel?.getInstance();
+      if (kernel) {
+        // 僅於劇情結束並完成淡出（STATE_FADING_OUT）時觸發
+        if (kernel.stateManager.getState() === "STATE_FADING_OUT") {
+          kernel.stateManager.setState("STATE_TITLE");
+          this.hideDialog();
+
+          // 確保背景更換回主畫面圖片
+          const assetModule = kernel.modules.find((m: any) => m.moduleName === "AssetManager");
+          if (assetModule) {
+            await assetModule.setBG("Main");
+          }
+
+          // 確保背景層可見
+
+          const bgLayer = assetModule?.getBGLayer();
+          if (bgLayer) {
+            bgLayer.style.display = 'block';
+            bgLayer.style.opacity = '1';
+          }
+          
+          this.showMenu();
+          
+          // 移除淡出遮罩（若存在）
+          if (this._fadeOverlay) {
+            this._fadeOverlay.style.display = 'none';
+            this._fadeOverlay.style.opacity = '0';
+          }
+        }
+      }
     });
   }
 
@@ -376,6 +412,52 @@ export class UIModule implements IGameModule {
 
   update(): void {}
   shutdown(): void {}
+
+  /**
+   * 執行畫面淡出效果
+   * @param duration 動畫持續時間 (毫秒)
+   * @returns Promise 當動畫完成時 resolve
+   */
+  public fadeOut(duration: number = 1000): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this._fadeOverlay) {
+        this._fadeOverlay = document.createElement('div');
+        this._fadeOverlay.id = 'fade-overlay';
+        this._fadeOverlay.style.position = 'fixed';
+        this._fadeOverlay.style.top = '0';
+        this._fadeOverlay.style.left = '0';
+        this._fadeOverlay.style.width = '100%';
+        this._fadeOverlay.style.height = '100%';
+        this._fadeOverlay.style.backgroundColor = 'black';
+        this._fadeOverlay.style.pointerEvents = 'none';
+        this._fadeOverlay.style.zIndex = '10000';
+        document.body.appendChild(this._fadeOverlay);
+      }
+
+      let opacity = 0;
+      this._fadeOverlay.style.display = 'block';
+      this._fadeOverlay.style.opacity = '0';
+
+      const startTime = performance.now();
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        if (this._fadeOverlay) {
+          this._fadeOverlay.style.opacity = progress.toString();
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(animate);
+    });
+  }
 
   /**
    * 釋放資源：移除事件監聽器

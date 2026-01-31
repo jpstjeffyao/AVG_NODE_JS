@@ -1,5 +1,5 @@
 import { IGameModule } from '../core/IGameModule';
-import { StateManager } from '../core/StateManager';
+import { StateManager, GameState } from '../core/StateManager';
 import { CharacterPosition } from './CharacterModule';
 import { GameKernel } from '../core/GameKernel';
 
@@ -64,6 +64,12 @@ export class ScriptEngine implements IGameModule {
             const line = this.scriptLines[this.currentLineIndex];
             await this.executeLine(line);
             this.currentLineIndex++;
+
+            // 執行完一行後，如果是最後一行，則進入等待結束互動狀態
+            if (this.currentLineIndex >= this.scriptLines.length) {
+                console.log("[ScriptEngine] End of script reached. Waiting for end interaction.");
+                this.stateManager.setState(GameState.STATE_WAIT_END_INTERACTION);
+            }
         }
     }
 

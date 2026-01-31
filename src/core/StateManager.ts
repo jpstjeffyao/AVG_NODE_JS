@@ -1,5 +1,12 @@
 import { IGameModule } from "./IGameModule";
 
+export enum GameState {
+    STATE_TITLE = "STATE_TITLE",
+    STATE_PLAYING = "STATE_PLAYING",
+    STATE_WAIT_END_INTERACTION = "STATE_WAIT_END_INTERACTION",
+    STATE_FADING_OUT = "STATE_FADING_OUT"
+}
+
 interface Snapshot {
     data: [string, number][];
     flags: string[];
@@ -11,6 +18,7 @@ export class StateManager implements IGameModule {
     private _data: Map<string, number>;
     private _flags: Set<string>;
     private _metadata: { scriptId: string; lineNumber: number; timestamp: number; };
+    private _currentState: GameState = GameState.STATE_TITLE;
 
     constructor() {
         this._data = new Map();
@@ -21,6 +29,16 @@ export class StateManager implements IGameModule {
 
     setValue(key: string, value: number): void {
         this._data.set(key, value);
+    }
+
+    setState(state: GameState): void {
+        const oldState = this._currentState;
+        this._currentState = state;
+        console.log(`[StateManager] State changed from ${oldState} to: ${state}`);
+    }
+
+    getState(): GameState {
+        return this._currentState;
     }
 
     getValue(key: string): number {

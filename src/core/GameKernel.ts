@@ -1,7 +1,7 @@
 import { CharacterModule } from '../modules/CharacterModule';
 import { AssetManager } from '../modules/AssetManager';
 import AudioManager from '../modules/AudioManager';
-import { StateManager } from './StateManager';
+import { StateManager, GameState } from './StateManager';
 import { ScriptEngine } from '../modules/ScriptEngine';
 import { UIModule } from '../modules/UIModule';
 
@@ -80,6 +80,25 @@ export class GameKernel {
      * 處理打字機加速或執行下一行指令
      */
     public async onUserClick(): Promise<void> {
+        // 檢查是否處於等待結束互動狀態
+        if (this.stateManager.getState() === GameState.STATE_WAIT_END_INTERACTION) {
+            this.stateManager.setState(GameState.STATE_FADING_OUT);
+            const uiModule = this.modules.find(m => m.moduleName === "UIModule");
+            if (uiModule) {
+                await uiModule.fadeOut(2000); // 2秒淡出
+                console.log("[GameKernel] Fade out complete, notifying main flow...");
+                // 這裡根據指示，僅需實作淡出動畫與觸發機制，不需處理返回主選單。
+                // 但我們會在這裡發送一個事件或日誌，代表通知主流程。
+                window.dispatchEvent(new CustomEvent('avg_fade_complete'));
+            }
+            return;
+        }
+
+        // 若正在淡出中，忽略點擊
+        if (this.stateManager.getState() === GameState.STATE_FADING_OUT) {
+            return;
+        }
+
         const uiModule = this.modules.find(m => m.moduleName === "UIModule");
         if (uiModule && uiModule.isTyping) {
             uiModule.completeTyping();
@@ -97,6 +116,7 @@ export class GameKernel {
      * 開始遊戲：觸發 ScriptEngine 的 next() 以載入第一條指令
      */
     public async startGame(): Promise<void> {
+        this.stateManager.setState(GameState.STATE_PLAYING);
         const scriptEngine = this.modules.find(m => m.moduleName === "ScriptEngine");
         if (scriptEngine) {
             // 等待腳本引擎執行下一行
