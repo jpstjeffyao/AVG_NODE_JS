@@ -150,38 +150,42 @@ export class AssetManager implements IGameModule {
      * @returns 載入成功與否的非同步結果
      */
     async ensureLoaded(key: string, type: string): Promise<boolean> {
-        if (this.cache.has(key)) return true;
+        const assetCacheKey = key.includes('/') ? key.split('/').pop() || key : key;
+        if (this.cache.has(assetCacheKey)) return true;
 
-        // 若找不到對應類型，預設不包含 assets 前綴
-        const subDir = this.typeSubDirs[type] || `/${type}/`;
-        
-        // 顯示 Loading
         this.dispatchLoading(true);
 
-        // 嘗試不同的副檔名
+        // Case 1: Key is a full path
+        if (key.includes('/')) {
+            const url = `/${key}`;
+            console.log(`[AssetManager] 嘗試載入資源 URL (直接路徑): ${url}`);
+            try {
+                await this.load(assetCacheKey, url);
+                this.dispatchLoading(false);
+                return true;
+            } catch (e) {
+                this.dispatchLoading(false);
+                console.error(`[AssetManager] 無法載入直接路徑資源: ${key}`);
+                return false;
+            }
+        }
+
+        // Case 2: Key is a filename, search in subdir
+        const subDir = this.typeSubDirs[type] || `/${type}/`;
         for (const ext of this.supportedExtensions) {
             const url = `${subDir}${key}${ext}`;
-            console.log(`[AssetManager] 嘗試載入資源 URL: ${url}`);
-            console.log(`[AssetManager] 嘗試載入資源 URL: ${url}`);
+            console.log(`[AssetManager] 嘗試載入資源 URL (猜測路徑): ${url}`);
             try {
                 await this.load(key, url);
                 this.dispatchLoading(false);
                 return true;
             } catch (e) {
-                // 嘗試下一個副檔名
+                // Try next extension
                 continue;
             }
         }
 
         console.error(`[AssetManager] 無法在 ${subDir} 找到資源: ${key}`);
-        // 顯示預設資源（圖片或音訊）
-        if (type === 'bg') {
-            if (this.bgLayer) this.bgLayer.style.backgroundImage = 'url(/assets/bg/default_bg.png)';
-        } else if (type === 'char') {
-            // 可選：插入預設立繪
-        } else if (type === 'music' || type === 'sound') {
-            // 可選：播放預設音效
-        }
         this.dispatchLoading(false);
         return false;
     }

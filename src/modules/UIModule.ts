@@ -295,8 +295,9 @@ export class UIModule implements IGameModule {
             // 若 speakerName 為空（旁白），則所有角色亮度設為 1.0
             brightness = 1.0;
           }
-          
-          assetModule.setSpriteHighlight(pos, brightness);
+          if (img) {
+            assetModule.setSpriteHighlight(pos, brightness);
+          }
         }
       });
     }

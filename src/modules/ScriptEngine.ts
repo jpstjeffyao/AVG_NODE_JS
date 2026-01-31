@@ -23,6 +23,16 @@ export class ScriptEngine implements IGameModule {
      */
     private positionMap: Map<string, string> = new Map();
 
+    /**
+     * 角色顯示名稱與內部 ID 的對照表
+     */
+    private characterNameMap: { [displayName: string]: string } = {
+        '伊莉莎白': 'elizabeth',
+        '侍衛隊長': 'Captain',
+        '哥布林隊長': 'Goblin'
+        // 可根據需求擴充
+    };
+
     constructor(stateManager: StateManager, private kernel: GameKernel) {
         this.stateManager = stateManager;
     }
@@ -60,17 +70,34 @@ export class ScriptEngine implements IGameModule {
     async next(): Promise<void> {
         if (this.isWaitingForChoice || this.isWaitingForAsset) return;
 
-        if (this.currentLineIndex < this.scriptLines.length) {
+        let isBlocking = false;
+        while (!isBlocking && this.currentLineIndex < this.scriptLines.length) {
             const line = this.scriptLines[this.currentLineIndex];
+            
+            // If line is empty or a comment, skip it and continue the loop
+            if (!line.trim() || line.trim().startsWith('#')) {
+                this.currentLineIndex++;
+                continue;
+            }
+
+            isBlocking = this.isBlockingCommand(line);
+
             await this.executeLine(line);
             this.currentLineIndex++;
 
-            // 執行完一行後，如果是最後一行，則進入等待結束互動狀態
+            // If the script ends on a non-blocking command, update the state.
             if (this.currentLineIndex >= this.scriptLines.length) {
-                console.log("[ScriptEngine] End of script reached. Waiting for end interaction.");
+                console.log("[ScriptEngine] End of script reached.");
                 this.stateManager.setState(GameState.STATE_WAIT_END_INTERACTION);
+                break; // Exit the loop
             }
         }
+    }
+
+    private isBlockingCommand(line: string): boolean {
+        const command = line.split('|')[0].trim();
+        // The 'CHOICE' and 'SAY' commands are blocking and require user interaction.
+        return command === 'CHOICE' || command === 'SAY';
     }
 
     /**
@@ -197,7 +224,8 @@ export class ScriptEngine implements IGameModule {
                 const assetModuleSAY = modules.find((m: any) => m.moduleName === "AssetManager");
                 if (assetModuleSAY) {
                     this.positionMap.forEach((charID, pos) => {
-                        const brightness = (charID === speaker) ? 1.0 : 0.6;
+                        const internalCharID = this.characterNameMap[speaker] || speaker;
+                        const brightness = (charID === internalCharID) ? 1.0 : 0.6;
                         assetModuleSAY.setSpriteHighlight(pos, brightness);
                     });
                 }

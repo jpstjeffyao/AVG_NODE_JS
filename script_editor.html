@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AVG Script Editor</title>
+
+    <!-- CodeMirror 5 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/darcula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+
+    <style>
+        /* CodeMirror 編輯器應填滿其容器 */
+        .CodeMirror {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
     <style>
         body {
             margin: 0;
@@ -139,19 +153,23 @@
         <!-- 側邊欄切換按鈕 -->
         <button id="toggle-sidebar" title="切換側邊欄">◀</button>
         <div id="editor-title">AVG Script Editor</div>
-        <!-- 劇本文字輸入區：停用拼字檢查以避免干擾腳本指令 -->
-        <textarea id="script-editor" spellcheck="false" placeholder="請在此輸入劇本..."></textarea>
+        <!-- CodeMirror 編輯器容器 -->
+        <div id="editor" style="flex: 1; border: 1px solid #333; border-radius: 4px; overflow: hidden;"></div>
         <!-- 儲存並將劇本發送到遊戲主視窗的按鈕 -->
         <button id="run-button">執行腳本 (Run)</button>
         <!-- 載入預設劇本範本的按鈕 -->
         <button id="load-example-btn">載入範例</button>
 
-        <!-- 檔案上傳 -->
-        <input type="file" id="file-uploader" accept=".txt,.md" style="display: none;">
-        <button id="upload-script-btn">上傳腳本</button>
-        <div>
+        <div class="file-operations" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
+            <button id="open-file-btn" style="width: 100%; padding: 10px; margin-bottom: 10px;">開啟檔案</button>
+            <button id="save-file-btn" style="width: 100%; padding: 10px; margin-bottom: 10px;">儲存檔案</button>
+            <input type="file" id="file-uploader" accept=".txt,.md" style="display: none;">
+            <button id="upload-script-btn" style="width: 100%; padding: 10px; background-color: #555;">(舊版)上傳腳本</button>
+        </div>
+
+        <div style="margin-top: 10px;">
             <input type="checkbox" id="overwrite-main-checkbox">
-            <label for="overwrite-main-checkbox">覆蓋主腳本</label>
+            <label for="overwrite-main-checkbox">覆蓋主腳本 (用於舊版上傳)</label>
         </div>
     </div>
 
@@ -167,6 +185,10 @@
         <div id="syntax-preview">等待輸入...</div>
     </div>
 
+    <!-- CodeMirror 5 JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/anyword-hint.min.js"></script>
     <script src="src/scripteditor.js"></script>
 </body>
 </html>
