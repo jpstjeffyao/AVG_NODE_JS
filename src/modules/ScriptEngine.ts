@@ -14,6 +14,7 @@ export class ScriptEngine implements IGameModule {
     private labels: { [key: string]: number } = {};
     private isWaitingForChoice: boolean = false;
     private isWaitingForAsset: boolean = false;
+    private isWaitingForVideo: boolean = false;
     
     /**
      * 紀錄立繪位置與角色ID的對應關係。
@@ -68,7 +69,7 @@ export class ScriptEngine implements IGameModule {
      * 改為非同步方法，等待當前指令執行完畢
      */
     async next(): Promise<void> {
-        if (this.isWaitingForChoice || this.isWaitingForAsset) return;
+        if (this.isWaitingForChoice || this.isWaitingForAsset || this.isWaitingForVideo) return;
 
         let isBlocking = false;
         while (!isBlocking && this.currentLineIndex < this.scriptLines.length) {
@@ -313,6 +314,17 @@ export class ScriptEngine implements IGameModule {
                 if (variableValue === parseInt(parts[2])) {
                     if (this.labels[targetIfLabel] !== undefined) {
                         this.currentLineIndex = this.labels[targetIfLabel];
+                    }
+                }
+                break;
+            case 'MV': // New: Play Video
+                const videoPath = parts[1];
+                if (this.kernel.uiModule) {
+                    this.isWaitingForVideo = true;
+                    try {
+                        await this.kernel.uiModule.playVideo(videoPath);
+                    } finally {
+                        this.isWaitingForVideo = false;
                     }
                 }
                 break;

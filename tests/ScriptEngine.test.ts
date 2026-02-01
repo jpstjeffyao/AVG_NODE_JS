@@ -1,66 +1,217 @@
-import { ScriptEngine } from '@modules/ScriptEngine';
-import { StateManager } from '@core/StateManager';
-import { GameKernel } from '@core/GameKernel';
+import { ScriptEngine } from '../src/modules/ScriptEngine';
+import { StateManager, GameState } from '../src/core/StateManager';
+import { GameKernel } from '../src/core/GameKernel';
+import { UIModule } from '../src/modules/UIModule';
+import { AssetManager } from '../src/modules/AssetManager';
+import AudioManager from '../src/modules/AudioManager';
 
-// Mock Audio for Node.js environment
+// Mock Audio and HTMLAudioElement for Node.js/JSDOM environment
 beforeAll(() => {
     global.Audio = jest.fn().mockImplementation(() => ({
         volume: 1,
         paused: true,
-        play: jest.fn(),
+        play: jest.fn().mockResolvedValue(undefined), // Ensure Audio() constructor play() returns a promise
         pause: jest.fn(),
         addEventListener: jest.fn(),
         removeEventListener: jest.fn()
     }));
+
+    // Mock HTMLAudioElement globally for instanceof checks
+    Object.defineProperty(global, 'HTMLAudioElement', {
+        writable: true,
+        value: class {
+            src: string = '';
+            volume: number = 1;
+            loop: boolean = false;
+            constructor(src?: string) {
+                if (src) this.src = src;
+            }
+            play = jest.fn().mockResolvedValue(undefined); // Ensure HTMLAudioElement.play() returns a promise
+            pause = jest.fn();
+            addEventListener = jest.fn();
+            removeEventListener = jest.fn();
+        },
+    });
 });
 
 describe('ScriptEngine', () => {
     let stateManager: StateManager;
     let scriptEngine: ScriptEngine;
     let kernel: GameKernel;
+    let uiModule: UIModule; // Add uiModule reference
+    let assetManager: AssetManager; // Add assetManager reference
+    let audioManager: AudioManager; // Add audioManager reference
+    let avgUiElement: HTMLElement; // Declare here
 
     beforeEach(() => {
-        stateManager = new StateManager();
-        // Mock window.GameKernel for ScriptEngine
-        (global as any).window = {
-            GameKernel: {
-                getInstance: () => GameKernel.getInstance()
-            }
-        };
-        kernel = GameKernel.getInstance();
-        scriptEngine = new ScriptEngine(stateManager, kernel);
+        // Setup a basic DOM for UIModule to find its container
+        avgUiElement = document.createElement('div');
+        avgUiElement.id = 'avg-ui';
+        document.body.appendChild(avgUiElement);
+        // Also need elements for speaker and content
+        const speakerDiv = document.createElement('div');
+        speakerDiv.id = 'speaker';
+        avgUiElement.appendChild(speakerDiv);
+        const contentDiv = document.createElement('div');
+        contentDiv.id = 'content';
+        avgUiElement.appendChild(contentDiv);
+
+        kernel = new GameKernel();
+        stateManager = kernel.stateManager;
+        scriptEngine = kernel.scriptEngine;
+        uiModule = kernel.uiModule; // Get reference from kernel
+        assetManager = kernel.assetManager; // Get reference from kernel
+        audioManager = kernel.audio; // Get reference from kernel
     });
 
     afterEach(() => {
-        delete (global as any).window;
+        jest.clearAllMocks();
+        if (avgUiElement && avgUiElement.parentNode) {
+            avgUiElement.parentNode.removeChild(avgUiElement);
+        }
     });
 
-    test('加載劇本並執行指令', () => {
+    test('加載劇本並執行 SET 指令', async () => {
         const script = [
             'SET|testKey|42',
-            'SAY|Hello World!'
         ];
 
         scriptEngine.loadScript(script);
-        scriptEngine.next(); // 執行 SET 指令
-        scriptEngine.next(); // 執行 SAY 指令
+        await scriptEngine.next(); // 執行 SET 指令
 
         expect(stateManager.getValue('testKey')).toBe(42);
     });
 
-    test('IF 指令跳轉', () => {
+    test('加載劇本並執行 SAY 指令', async () => {
         const script = [
-            'SET|testKey|42',
-            'IF|testKey|42|GOTO|4',
-            'SAY|This should not be printed',
-            'SAY|Jumped!',
+            'SAY|Hero|Hello World!',
         ];
+        const renderTextSpy = jest.spyOn(uiModule, 'renderText');
+        const showDialogSpy = jest.spyOn(uiModule, 'showDialog');
 
         scriptEngine.loadScript(script);
-        scriptEngine.next(); // 執行 SET 指令
-        scriptEngine.next(); // 執行 IF 指令，應該跳轉
-        scriptEngine.next(); // 執行 SAY 指令，應該打印 'Jumped!'
+        await scriptEngine.next(); // 執行 SAY 指令
 
-        expect(stateManager.getValue('testKey')).toBe(42);
+        expect(showDialogSpy).toHaveBeenCalled();
+        expect(renderTextSpy).toHaveBeenCalledWith('Hero', 'Hello World!');
+    });
+
+    test('IF 指令跳轉', async () => {
+        const script = [
+            'SET|testKey|42',
+            'IF|testKey|42|GOTO|LABEL_JUMP',
+            'SAY|ShouldNotBePrinted',
+            'LABEL|LABEL_JUMP',
+            'SAY|Hero|Jumped!',
+        ];
+        const renderTextSpy = jest.spyOn(uiModule, 'renderText');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next(); // SET
+        await scriptEngine.next(); // IF, then GOTO
+        await scriptEngine.next(); // SAY "Jumped!"
+
+        expect(renderTextSpy).toHaveBeenCalledWith('Hero', 'Jumped!'); // Assuming default character if not specified
+        expect(renderTextSpy).not.toHaveBeenCalledWith('Hero', 'ShouldNotBePrinted');
+    });
+
+    test('BG 指令設置背景', async () => {
+        const script = ['BG|bg_room'];
+        const setBGSpy = jest.spyOn(assetManager, 'setBG').mockResolvedValue(undefined);
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(setBGSpy).toHaveBeenCalledWith('bg_room');
+    });
+
+    test('SPRITE 指令顯示角色', async () => {
+        const script = ['SPRITE|hero|center|char_hero'];
+        const handleSpriteCommandSpy = jest.spyOn(assetManager, 'handleSpriteCommand').mockResolvedValue(undefined);
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(handleSpriteCommandSpy).toHaveBeenCalledWith('hero', 'center', 'char_hero');
+    });
+
+    test('BGM_PLAY 指令播放背景音樂', async () => {
+        const script = ['[BGM_PLAY: music/FairyTale.mp3, 0.7, true]'];
+        const ensureLoadedSpy = jest.spyOn(assetManager, 'ensureLoaded').mockResolvedValue(true);
+        const getAssetSpy = jest.spyOn(assetManager, 'getAsset').mockReturnValue(new (global as any).HTMLAudioElement('music/FairyTale.mp3'));
+        const playBGM = jest.spyOn(audioManager, 'playBGM');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(ensureLoadedSpy).toHaveBeenCalledWith('music/FairyTale.mp3', 'music');
+        expect(getAssetSpy).toHaveBeenCalledWith('FairyTale.mp3');
+        expect(playBGM).toHaveBeenCalledWith(expect.any(HTMLAudioElement), 0.7, true);
+    });
+
+    test('MV 指令播放影片', async () => {
+        const script = ['MV|assets/mov/main.mp4']; // Updated path
+        const playVideoSpy = jest.spyOn(uiModule, 'playVideo').mockResolvedValue(undefined);
+        
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(playVideoSpy).toHaveBeenCalledWith('assets/mov/main.mp4'); // Updated path
+        expect(scriptEngine["isWaitingForVideo"]).toBe(false); // Should be false after awaiting
+    });
+
+    test('CHOICE 指令顯示選項並等待選擇', async () => {
+        const script = [
+            'SAY|Hero|Choose!',
+            'CHOICE|Option A:labelA|Option B:labelB',
+            'LABEL|labelA',
+            'SAY|Hero|You chose A.',
+            'LABEL|labelB',
+            'SAY|Hero|You chose B.',
+        ];
+        const showChoicesSpy = jest.spyOn(uiModule, 'showChoices');
+        const clearDialogSpy = jest.spyOn(uiModule, 'clearDialog');
+        const renderTextSpy = jest.spyOn(uiModule, 'renderText');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next(); // SAY
+        await scriptEngine.next(); // CHOICE - this should block
+
+        expect(clearDialogSpy).toHaveBeenCalled();
+        expect(showChoicesSpy).toHaveBeenCalledWith(['Option A', 'Option B']);
+        expect(scriptEngine["isWaitingForChoice"]).toBe(true);
+
+        // Simulate choice made
+        window.dispatchEvent(new CustomEvent('choiceMade', { detail: 'Option A' }));
+        await new Promise(process.nextTick); // Allow promise resolution
+
+        expect(scriptEngine["isWaitingForChoice"]).toBe(false);
+        // ScriptEngine should now be at 'SAY|Hero|You chose A.'
+        await scriptEngine.next();
+        expect(renderTextSpy).toHaveBeenCalledWith('Hero', 'You chose A.');
+    });
+
+    test('next() should skip empty lines and comments', async () => {
+        const script = [
+            '# This is a comment',
+            '',
+            '    ',
+            'SAY|Hero|After comments',
+        ];
+        const renderTextSpy = jest.spyOn(uiModule, 'renderText');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+        
+        expect(renderTextSpy).toHaveBeenCalledWith('Hero', 'After comments');
+    });
+
+    test('Script ends, state changes to STATE_WAIT_END_INTERACTION', async () => {
+        const script = ['SAY|Hero|The End.'];
+        scriptEngine.loadScript(script);
+        await scriptEngine.next(); // SAY
+        await scriptEngine.next(); // After SAY, script should end
+
+        expect(stateManager.getState()).toBe(GameState.STATE_WAIT_END_INTERACTION);
     });
 });

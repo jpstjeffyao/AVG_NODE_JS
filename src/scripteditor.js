@@ -6,10 +6,10 @@
  */
 
 // --- Autocomplete & Highlighting Data ---
-const mainCommandRegex = /^(SAY|BG|CHARA|CHOICE|LABEL|GOTO|SPRITE|SPRITE_CLR)/;
+const mainCommandRegex = /^(SAY|BG|CHARA|CHOICE|LABEL|GOTO|SPRITE|SPRITE_CLR|MV)/;
 const audioCommandRegex = /^(\[)(BGM_PLAY|BGM_STOP|BGM_FADE_OUT|BGM_FADE_IN|SFX_PLAY)/;
 const charAssets = ["Captain_angry", "Captain_happy", "Captain_neutral", "Captain_sad", "elizabeth_happy_L", "elizabeth_happy_R", "elizabeth_neutral_L", "elizabeth_neutral_R", "elizabeth_sad_L", "elizabeth_sad_R", "elizabeth_surprised_L", "elizabeth_surprised_R", "Goblin_neutral", "Goblin_surprised", "hero_happy", "hero", "kinght_full", "knight_helf"];
-const mainCommands = ["SAY|", "BG|", "CHARA|", "CHOICE|", "LABEL|", "GOTO|", "[BGM_PLAY:", "[SFX_PLAY:"];
+const mainCommands = ["SAY|", "BG|", "CHARA|", "CHOICE|", "LABEL|", "GOTO|", "SPRITE|", "SPRITE_CLR|", "MV|", "[BGM_PLAY:", "[SFX_PLAY:"];
 const charaSubCommands = ["SHOW|", "HIDE|", "CLEAR"];
 
 /**

@@ -1,5 +1,6 @@
 import { IGameModule } from '../core/IGameModule';
 import { GameKernel } from '../core/GameKernel';
+import { GameState } from '../core/StateManager';
 
 /**
  * UI 模組，負責對話視窗、選項選單及選單畫面的顯示與互動
@@ -106,7 +107,7 @@ export class UIModule implements IGameModule {
       if (this.kernel) {
         // 僅於劇情結束並完成淡出（STATE_FADING_OUT）時觸發
         if (this.kernel.stateManager.getState() === "STATE_FADING_OUT") {
-          this.kernel.stateManager.setState("STATE_TITLE");
+          this.kernel.stateManager.setState(GameState.STATE_TITLE);
           this.hideDialog();
 
           // 確保背景更換回主畫面圖片
@@ -285,31 +286,70 @@ export class UIModule implements IGameModule {
   /**
    * 立即完成打字效果（用於玩家在文字渲染中途點擊畫面時跳過動畫）
    */
-  public completeTyping(): void {
-    if (!this._isTyping) return;
-
-    // 停止計時器
-    if (this._typingTimer !== null) {
-      window.clearInterval(this._typingTimer);
-      this._typingTimer = null;
-    }
-
-    // 補完所有文字內容
-    if (this._container) {
-      const contentBox = this._container.querySelector("#content");
-      if (contentBox) {
-        contentBox.textContent = this._fullText;
+      public completeTyping(): void {
+          if (!this._isTyping) return;
+  
+          // 停止計時器
+          if (this._typingTimer !== null) {
+              window.clearInterval(this._typingTimer);
+              this._typingTimer = null;
+          }
+  
+          // 補完所有文字內容
+          if (this._container) {
+              const contentBox = this._container.querySelector("#content");
+              if (contentBox) {
+                  contentBox.textContent = this._fullText;
+              }
+          }
+  
+          this._isTyping = false;
       }
-    }
-
-    this._isTyping = false;
-  }
-
-  /**
-   * 在畫面中央顯示分支選項按鈕
-   * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])
-   */
-  showChoices(choices: string[]): void {
+  
+      /**
+       * 播放全螢幕影片
+       * @param videoPath 影片檔案路徑
+       * @returns Promise 當影片播放結束時 resolve
+       */
+      public playVideo(videoPath: string): Promise<void> {
+          return new Promise((resolve) => {
+              const videoElement = document.createElement('video');
+              videoElement.src = videoPath;
+              videoElement.autoplay = true;
+              videoElement.controls = false; // 不顯示控制器，讓影片自動播放並佔據全螢幕
+              videoElement.preload = 'auto'; // 預加載影片
+  
+              // 設定全螢幕樣式，並確保在所有內容之上
+              videoElement.style.position = 'fixed';
+              videoElement.style.top = '0';
+              videoElement.style.left = '0';
+              videoElement.style.width = '100%';
+              videoElement.style.height = '100%';
+              videoElement.style.zIndex = '10001'; // 比 fadeOverlay (z-index: 10000) 更高
+              videoElement.style.objectFit = 'cover'; // 確保影片填滿整個螢幕，可能會裁剪
+              videoElement.style.backgroundColor = 'black'; // 影片載入前或結束後的背景
+  
+              // 監聽影片播放結束事件
+              videoElement.addEventListener('ended', () => {
+                  videoElement.remove(); // 播放結束後從 DOM 中移除影片元素
+                  resolve(); // 解析 Promise，通知 ScriptEngine 繼續執行腳本
+              });
+  
+              // 監聽影片載入失敗事件
+              videoElement.addEventListener('error', (e) => {
+                  console.error(`Error playing video ${videoPath}:`, e);
+                  videoElement.remove(); // 移除錯誤的影片元素
+                  resolve(); // 即使出錯也解析 Promise，避免腳本卡住
+              });
+  
+              document.body.appendChild(videoElement);
+          });
+      }
+  
+      /**
+       * 在畫面中央顯示分支選項按鈕
+       * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])
+       */  showChoices(choices: string[]): void {
     if (!this._container) return;
 
     // 動態建立存放按鈕的容器，並置中顯示

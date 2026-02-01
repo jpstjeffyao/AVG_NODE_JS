@@ -1,5 +1,6 @@
-import { GameKernel } from '../src/core/GameKernel';
-import { IGameModule } from '../src/core/IGameModule';
+import { GameKernel } from '@core/GameKernel';
+import { IGameModule } from '@core/IGameModule';
+import { GameState } from '@core/StateManager';
 
 // Mock Audio for Node.js environment
 beforeAll(() => {
@@ -12,42 +13,48 @@ beforeAll(() => {
         removeEventListener: jest.fn()
     }));
 });
-
 describe('GameKernel', () => {
+    let kernel: GameKernel;
+
     beforeEach(() => {
-        // @ts-ignore
-        GameKernel.instance = undefined;
-        // @ts-ignore
-        GameKernel.getInstance().modules = [];
+        kernel = new GameKernel();
     });
 
-    test('should be a singleton', () => {
-        const instance1 = GameKernel.getInstance();
-        const instance2 = GameKernel.getInstance();
-        expect(instance1).toBe(instance2);
-    });
-
-    test('should register and boot modules', () => {
-        const kernel = GameKernel.getInstance();
+    test('should register modules', () => {
         let initCalled = false;
         
         const mockModule: IGameModule = {
+            moduleName: "MockModule", // Added for IGameModule interface
             initialize: () => { initCalled = true; },
             update: () => {},
             shutdown: () => {}
         };
         
         kernel.registerModule(mockModule);
-        kernel.boot();
+        expect(kernel.modules).toContain(mockModule);
+    });
+
+    test('should initialize modules', () => {
+        let initCalled = false;
+        
+        const mockModule: IGameModule = {
+            moduleName: "MockModule",
+            initialize: () => { initCalled = true; },
+            update: () => {},
+            shutdown: () => {}
+        };
+        
+        kernel.registerModule(mockModule);
+        kernel.initializeModules();
         
         expect(initCalled).toBe(true);
     });
 
     test('should run without errors even if modules throw during update', () => {
-        const kernel = GameKernel.getInstance();
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         
         const badModule: IGameModule = {
+            moduleName: "BadModule",
             initialize: () => {},
             update: () => { throw new Error('update error'); },
             shutdown: () => {}
@@ -67,12 +74,12 @@ describe('GameKernel', () => {
         consoleSpy.mockRestore();
     });
 
-    test('should run without errors even if modules throw during boot', () => {
-        const kernel = GameKernel.getInstance();
+    test('should run without errors even if modules throw during initialize', () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         
         const badModule: IGameModule = {
-            initialize: () => { throw new Error('boot error'); },
+            moduleName: "BadModule",
+            initialize: () => { throw new Error('initialize error'); },
             update: () => {},
             shutdown: () => {}
         };
@@ -80,31 +87,82 @@ describe('GameKernel', () => {
         kernel.registerModule(badModule);
         
         expect(() => {
-            kernel.boot();
+            kernel.initializeModules();
         }).not.toThrow();
         
         expect(consoleSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Module initialization error:'),
+            expect.stringContaining('Error initializing module BadModule:'), // Updated message based on GameKernel.ts
             expect.any(Error)
         );
         
         consoleSpy.mockRestore();
     });
 
-    test('onUserClick should check if window and ScriptEngine exist', async () => {
-        const kernel = GameKernel.getInstance();
-        
-        // Mock window.ScriptEngine
+    test('onUserClick should call scriptEngine.next() if not in WAIT_END_INTERACTION or FADING_OUT state', async () => {
+        // Mock state to be PLAYING
+        kernel.stateManager.setState(GameState.STATE_PLAYING);
         const mockNext = jest.fn().mockResolvedValue(undefined);
         
-        // Mock a module that acts as ScriptEngine inside kernel
-        const mockScriptEngine = {
-            moduleName: "ScriptEngine",
-            next: mockNext
-        };
-        kernel.registerModule(mockScriptEngine);
+        // Mock ScriptEngine inside kernel instance
+        kernel.scriptEngine.next = mockNext;
         
         await kernel.onUserClick();
-        expect(mockNext).toHaveBeenCalled();
+        expect(mockNext).toHaveBeenCalledTimes(1);
+    });
+
+    test('onUserClick should trigger fadeOut and avg_fade_complete event if in WAIT_END_INTERACTION state', async () => {
+        kernel.stateManager.setState(GameState.STATE_WAIT_END_INTERACTION);
+        
+        // Mock UIModule.fadeOut
+        const mockFadeOut = jest.fn().mockResolvedValue(undefined);
+        kernel.uiModule.fadeOut = mockFadeOut;
+
+        const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
+
+        await kernel.onUserClick();
+
+        expect(mockFadeOut).toHaveBeenCalledTimes(1);
+        expect(kernel.stateManager.getState()).toBe(GameState.STATE_FADING_OUT);
+        expect(dispatchEventSpy).toHaveBeenCalledWith(new CustomEvent('avg_fade_complete'));
+        dispatchEventSpy.mockRestore();
+    });
+
+    test('onUserClick should not call scriptEngine.next() if in FADING_OUT state', async () => {
+        kernel.stateManager.setState(GameState.STATE_FADING_OUT);
+        const mockNext = jest.fn().mockResolvedValue(undefined);
+        kernel.scriptEngine.next = mockNext;
+
+        await kernel.onUserClick();
+        expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    test('startGame should set state to PLAYING and call scriptEngine.next()', async () => {
+        kernel.stateManager.setState(GameState.STATE_TITLE);
+        const mockNext = jest.fn().mockResolvedValue(undefined);
+        kernel.scriptEngine.next = mockNext;
+
+        await kernel.startGame();
+
+        expect(kernel.stateManager.getState()).toBe("STATE_PLAYING");
+        expect(mockNext).toHaveBeenCalledTimes(1);
+    });
+
+    test('loadScript should call scriptEngine.loadScript()', () => {
+        const mockLoadScript = jest.fn();
+        kernel.scriptEngine.loadScript = mockLoadScript;
+        const testScript = ["SAY|Test|Hello"];
+
+        kernel.loadScript(testScript);
+
+        expect(mockLoadScript).toHaveBeenCalledWith(testScript);
+    });
+
+    test('start should call startGame', async () => {
+        const mockStartGame = jest.fn().mockResolvedValue(undefined);
+        kernel.startGame = mockStartGame;
+
+        await kernel.start();
+        expect(mockStartGame).toHaveBeenCalledTimes(1);
     });
 });
+

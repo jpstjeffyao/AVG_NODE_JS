@@ -8,7 +8,7 @@ BG|bg_07
 CHARA|SHOW|elizabeth_neutral_L|left
 SAY|伊莉莎白|今日的王座，依然沉重如往昔。
 SAY|伊莉莎白|百年的和平，並不是時間自然賜予的禮物。
-
+MV|mov/Main.mp4
 CHARA|SHOW|Captain_neutral|right
 SAY|侍衛隊長|陛下，邊境的巡邏隊回報異常。
 SAY|侍衛隊長|城鎮地下道，出現哥布林部隊的蹤跡。

@@ -1,4 +1,6 @@
 import { GameKernel } from './core/GameKernel';
+import { IGameModule } from './core/IGameModule'; // Add this line
+import { UIModule } from './modules/UIModule'; // Add this line
 
 const gameAssets = [
    { key: 'bg_room', src: '/bg/bg_room.jpg' },
@@ -44,13 +46,14 @@ async function bootstrap() {
        "[SFX_PLAY: sound/gated-drop-sound-effect-240900.mp3, 0.5]",
    
        "CHARA|SHOW|elizabeth_neutral_L|left",
-       "SAY|伊莉莎白|備馬。",
-       "SAY|伊莉莎白|這次，我要親自看看裂痕從哪裡開始。",
-   
-       "# =========================",
-       "# 夜晚的城鎮",
-       "# =========================",
-   
+              "SAY|伊莉莎白|備馬。",
+              "SAY|伊莉莎白|這次，我要親自看看裂痕從哪裡開始。",
+       
+              "MV|assets/mov/main.mp4", // New line
+       
+              "# =========================",
+              "# 夜晚的城鎮",
+              "# =========================",   
        "BG|bg_04",
        "[SFX_PLAY: sound/mid-nights-sound-291477.mp3, 0.4]",
    
@@ -184,7 +187,7 @@ async function bootstrap() {
             kernel.start();
             
             // 透過 UIModule 隱藏選單與顯示對話框
-            const uiModule = kernel.modules?.find((m: any) => m.moduleName === "UIModule");
+            const uiModule = kernel.modules?.find((m: IGameModule) => m.moduleName === "UIModule") as UIModule | undefined;
             if (uiModule) {
                 uiModule.hideMenu();
                 uiModule.showDialog();
