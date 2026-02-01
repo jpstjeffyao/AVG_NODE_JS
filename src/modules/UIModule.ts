@@ -176,9 +176,11 @@ export class UIModule implements IGameModule {
    * 顯示 MENU 畫面
    */
   public showMenu(): void {
-    console.log("[UIModule] showMenu called");
+    console.log("[UIModule] showMenu() called. Displaying #menu-screen.");
     if (this._menuScreen) {
       this._menuScreen.style.display = "flex";
+      // NEW LOG: Confirming style application
+      console.log(`[UIModule] #menu-screen display set to: ${this._menuScreen.style.display}`);
     }
     // 顯示選單時，除了清除內容，也要確保打字機計時器被清除
     this.clear();
@@ -213,6 +215,7 @@ export class UIModule implements IGameModule {
    */
   public hideDialog(): void {
     if (this._dialogContainer) {
+      console.log("[UIModule] hideDialog() called. Hiding #avg-ui.");
       this._dialogContainer.style.display = "none";
     }
   }
@@ -382,50 +385,56 @@ export class UIModule implements IGameModule {
                   document.body.appendChild(videoElement);
               });
           }  
-      /**
-       * 在畫面中央顯示分支選項按鈕
-       * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])
-       */  showChoices(choices: string[]): void {
-    if (!this._container) return;
-
-    // 動態建立存放按鈕的容器，並置中顯示
-    const choiceContainer = document.createElement("div");
-    choiceContainer.id = "choice-container";
-    choiceContainer.style.position = "absolute";
-    choiceContainer.style.top = "50%";
-    choiceContainer.style.left = "50%";
-    choiceContainer.style.transform = "translate(-50%, -50%)";
-    choiceContainer.style.display = "flex";
-    choiceContainer.style.flexDirection = "column";
-    choiceContainer.style.gap = "10px";
-    choiceContainer.style.zIndex = "1000";
-
-    choices.forEach((label) => {
-      const button = document.createElement("button");
-      button.innerText = label;
-      button.className = "choice-button";
-      button.style.padding = "10px 20px";
-      button.style.fontSize = "18px";
-      button.style.cursor = "pointer";
-
-      button.addEventListener("click", (e) => {
-        // 防止事件冒泡到全螢幕點擊
-        e.stopPropagation();
-
-        // 觸發自定義事件，傳遞選擇的標籤
-        const event = new CustomEvent("choiceMade", { detail: label });
-        window.dispatchEvent(event);
-
-        // 移除所有選項按鈕
-        choiceContainer.remove();
-      });
-
-      choiceContainer.appendChild(button);
-    });
-
-    this._container.appendChild(choiceContainer);
-  }
-
+        /**
+         * 在畫面中央顯示分支選項按鈕
+         * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])
+         */
+        showChoices(choices: string[]): void {
+          // 確保 UI 已初始化
+          if (!this._container) return;
+      
+          // NEW: Hide the entire dialog container when showing choices
+          this.hideDialog(); 
+      
+          // 動態建立存放按鈕的容器，並置中顯示
+          const choiceContainer = document.createElement("div");
+          choiceContainer.id = "choice-container";
+          choiceContainer.style.position = "absolute";
+          choiceContainer.style.top = "50%";
+          choiceContainer.style.left = "50%";
+          choiceContainer.style.transform = "translate(-50%, -50%)";
+          choiceContainer.style.display = "flex";
+          choiceContainer.style.flexDirection = "column";
+          choiceContainer.style.gap = "10px";
+          choiceContainer.style.zIndex = "1000";
+      
+          choices.forEach((label) => {
+            const button = document.createElement("button");
+            button.innerText = label;
+            button.className = "choice-button";
+            button.style.padding = "10px 20px";
+            button.style.fontSize = "18px";
+            button.style.cursor = "pointer";
+      
+            button.addEventListener("click", (e) => {
+              // 防止事件冒泡到全螢幕點擊
+              e.stopPropagation();
+      
+              // 觸發自定義事件，傳遞選擇的標籤
+              const event = new CustomEvent("choiceMade", { detail: label });
+              window.dispatchEvent(event);
+      
+              // 移除所有選項按鈕
+              choiceContainer.remove();
+            });
+      
+            choiceContainer.appendChild(button);
+          });
+      
+          // 將選項容器加入到 game-root (確保在最上層且不受 avg-ui 隱藏影響)
+          const gameRoot = document.getElementById("game-root") || document.body;
+          gameRoot.appendChild(choiceContainer);
+        }
   showOptions(choices: string[]): Promise<number> {
     // 預留：未實作
     return Promise.resolve(0);
@@ -453,7 +462,6 @@ export class UIModule implements IGameModule {
    */
   clearDialog(): void {
     if (!this._container) {
-      console.warn("[UIModule] clearDialog: _container is null");
       return;
     }
     const nameBox = this._container.querySelector("#speaker");

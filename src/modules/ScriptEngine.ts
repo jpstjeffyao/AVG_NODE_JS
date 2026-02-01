@@ -322,6 +322,7 @@ export class ScriptEngine implements IGameModule {
 
     initialize(): void {
         this.currentLineIndex = 0;
+        this.positionMap.clear();
     }
 
     update(): void {

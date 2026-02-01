@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "dev": "vite --log-level warn"
+    "dev": "vite"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

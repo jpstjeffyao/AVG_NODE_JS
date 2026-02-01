@@ -104,6 +104,8 @@ export class GameKernel {
         this.stateManager.setState(GameState.STATE_PLAYING);
         const scriptEngine = this.scriptEngine;
         if (scriptEngine) {
+            // 重置腳本引擎狀態 (行號歸零、清除暫存狀態)
+            scriptEngine.initialize();
             // 等待腳本引擎執行下一行
             await scriptEngine.next();
         }

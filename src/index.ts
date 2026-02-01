@@ -150,7 +150,7 @@ async function bootstrap() {
        "# =========================",
    
        "LABEL|ending",
-       "BGM_FADE_OUT|5",
+       "[BGM_FADE_OUT: 5]",
        "CHARA|CLEAR",
        "BG|bg_05",
        "SAY|系統|在這一夜，仇恨沒有消失。",
