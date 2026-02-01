@@ -57,6 +57,28 @@ npm run test:coverage
 
 # Development Conventions
 
+## Agent Instructions & Development Workflow
+
+To ensure project consistency and maintainability, adhere to the following strict guidelines for all code modifications:
+
+1.  **Code Comments**: 
+    *   All new code comments must be written in **Chinese (Traditional/Simplified)**.
+    *   Focus on explaining the *why* and complex logic.
+
+2.  **Change Logging (`codelog.md`)**:
+    *   **Mandatory**: Every code change, bug fix, or feature addition MUST be logged.
+    *   **Append Only**: Always **append** new entries to the top or bottom of `codelog.md` (preserving history). Do not overwrite existing logs.
+    *   **Format**: Include a header with the **Date and Time**, followed by a summary of changes, modified files, and the reasoning.
+
+3.  **Documentation Updates**:
+    *   **Feature/Function Changes**: If you add or modify a function, command, or feature, you MUST update:
+        *   `ReadMe.md`: For general project overview and usage.
+        *   `scriptFormat.md`: For any changes related to script commands (e.g., new commands like `MV`, `CHARA`).
+    
+4.  **Design Specifications**:
+    *   **New Designs**: If initiating a new module or significant architectural change, create a new design document.
+    *   **Location**: `DefineDocument/xx_newDesign.md` (replace `xx` with a sequence number or identifier).
+
 ## Code Structure
 
 *   **`src/core/`**: Contains core system components like `GameKernel`, `StateManager`, and interfaces (`IGameModule`).
