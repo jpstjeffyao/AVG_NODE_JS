@@ -124,6 +124,12 @@ export class UIModule implements IGameModule {
             bgLayer.style.opacity = '1';
           }
           
+          // NEW: Clear character sprites when returning to title screen
+          if (this.kernel.characterModule) {
+            console.log("[UIModule] Calling characterModule.clear()."); // NEW LOG
+            this.kernel.characterModule.clear();
+          }
+
           this.showMenu();
           
           // 移除淡出遮罩（若存在）
@@ -214,9 +220,8 @@ export class UIModule implements IGameModule {
   /**
    * 點擊「開始遊戲」
    */
-  private onNewGameClick(): void {
-    console.log("UIModule: New Game Clicked");
-    this.hideMenu();
+    private onNewGameClick(): void {
+        this.hideMenu();
     this.showDialog();
 
     // 透過暴露在 window 的 kernel 啟動遊戲
@@ -311,41 +316,72 @@ export class UIModule implements IGameModule {
        * @param videoPath 影片檔案路徑
        * @returns Promise 當影片播放結束時 resolve
        */
-      public playVideo(videoPath: string): Promise<void> {
-          return new Promise((resolve) => {
-              const videoElement = document.createElement('video');
-              videoElement.src = videoPath;
-              videoElement.autoplay = true;
-              videoElement.controls = false; // 不顯示控制器，讓影片自動播放並佔據全螢幕
-              videoElement.preload = 'auto'; // 預加載影片
-  
-              // 設定全螢幕樣式，並確保在所有內容之上
-              videoElement.style.position = 'fixed';
-              videoElement.style.top = '0';
-              videoElement.style.left = '0';
-              videoElement.style.width = '100%';
-              videoElement.style.height = '100%';
-              videoElement.style.zIndex = '10001'; // 比 fadeOverlay (z-index: 10000) 更高
-              videoElement.style.objectFit = 'cover'; // 確保影片填滿整個螢幕，可能會裁剪
-              videoElement.style.backgroundColor = 'black'; // 影片載入前或結束後的背景
-  
-              // 監聽影片播放結束事件
-              videoElement.addEventListener('ended', () => {
-                  videoElement.remove(); // 播放結束後從 DOM 中移除影片元素
-                  resolve(); // 解析 Promise，通知 ScriptEngine 繼續執行腳本
+          public playVideo(videoPath: string, volume: number = 1.0): Promise<void> {
+              return new Promise((resolve) => {
+                  const videoElement = document.createElement('video');
+                  videoElement.src = videoPath;
+                  videoElement.autoplay = true;
+                  videoElement.controls = false; // 不顯示控制器，讓影片自動播放並佔據全螢幕
+                  videoElement.preload = 'auto'; // 預加載影片
+                  videoElement.volume = Math.max(0, Math.min(1, volume)); // Set volume, clamped between 0 and 1
+      
+                  // 設定全螢幕樣式，並確保在所有內容之上
+                  videoElement.style.position = 'fixed';
+                  videoElement.style.top = '0';
+                  videoElement.style.left = '0';
+                  videoElement.style.width = '100%';
+                  videoElement.style.height = '100%';
+                  videoElement.style.zIndex = '10001'; // 比 fadeOverlay (z-index: 10000) 更高
+                  videoElement.style.objectFit = 'cover'; // 確保影片填滿整個螢幕，可能會裁剪
+                  videoElement.style.backgroundColor = 'black'; // 影片載入前或結束後的背景
+      
+                  let skipHandled = false; // Flag to prevent double resolution
+      
+                  const cleanup = () => {
+                      if (videoElement.parentNode) {
+                          videoElement.parentNode.removeChild(videoElement);
+                      }
+                      document.removeEventListener('click', skipVideo);
+                      document.removeEventListener('keydown', skipVideo);
+                  };
+      
+                  const doResolve = () => {
+                      if (!skipHandled) {
+                          skipHandled = true;
+                          cleanup();
+                          resolve();
+                      }
+                  };
+      
+                  // Event listener for natural end of video
+                  videoElement.addEventListener('ended', doResolve);
+      
+                  // Event listener for skip by click/keydown
+                  const skipVideo = (event: Event) => {
+                      // Prevent default behavior for keydown (e.g., space scrolling)
+                      if (event instanceof KeyboardEvent && event.code === 'Space') {
+                          event.preventDefault();
+                      }
+                      // Only skip if not already handled by natural end
+                      if (!skipHandled) {
+                          console.log("[UIModule] Video skipped by user interaction.");
+                          videoElement.pause(); // Pause if playing
+                          doResolve();
+                      }
+                  };
+      
+                  document.addEventListener('click', skipVideo);
+                  document.addEventListener('keydown', skipVideo);
+      
+                  // 監聽影片載入失敗事件
+                  videoElement.addEventListener('error', (e) => {
+                      console.error(`Error playing video ${videoPath}:`, e);
+                      doResolve(); // Resolve even on error to unblock script
+                  });
+      
+                  document.body.appendChild(videoElement);
               });
-  
-              // 監聽影片載入失敗事件
-              videoElement.addEventListener('error', (e) => {
-                  console.error(`Error playing video ${videoPath}:`, e);
-                  videoElement.remove(); // 移除錯誤的影片元素
-                  resolve(); // 即使出錯也解析 Promise，避免腳本卡住
-              });
-  
-              document.body.appendChild(videoElement);
-          });
-      }
-  
+          }  
       /**
        * 在畫面中央顯示分支選項按鈕
        * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])

@@ -15,9 +15,37 @@ beforeAll(() => {
 });
 describe('GameKernel', () => {
     let kernel: GameKernel;
+    // ADDED: For DOM cleanup
+    let avgUiElement: HTMLElement;
+    let characterContainer: HTMLElement;
 
     beforeEach(() => {
-        kernel = new GameKernel();
+        // ADDED: Setup a basic DOM for UIModule and CharacterModule
+        avgUiElement = document.createElement('div');
+        avgUiElement.id = 'avg-ui';
+        document.body.appendChild(avgUiElement);
+        const speakerDiv = document.createElement('div');
+        speakerDiv.id = 'speaker';
+        avgUiElement.appendChild(speakerDiv);
+        const contentDiv = document.createElement('div');
+        contentDiv.id = 'content';
+        avgUiElement.appendChild(contentDiv);
+
+        characterContainer = document.createElement('div');
+        characterContainer.id = 'character-container';
+        document.body.appendChild(characterContainer);
+
+        kernel = new GameKernel(); // <-- Instantiated after DOM setup
+    });
+
+    afterEach(() => {
+        // ADDED: Cleanup DOM elements
+        if (avgUiElement && avgUiElement.parentNode) {
+            avgUiElement.parentNode.removeChild(avgUiElement);
+        }
+        if (characterContainer && characterContainer.parentNode) {
+            characterContainer.parentNode.removeChild(characterContainer);
+        }
     });
 
     test('should register modules', () => {
@@ -143,7 +171,7 @@ describe('GameKernel', () => {
 
         await kernel.startGame();
 
-        expect(kernel.stateManager.getState()).toBe("STATE_PLAYING");
+        expect(kernel.stateManager.getState()).toBe(GameState.STATE_PLAYING);
         expect(mockNext).toHaveBeenCalledTimes(1);
     });
 
@@ -165,4 +193,3 @@ describe('GameKernel', () => {
         expect(mockStartGame).toHaveBeenCalledTimes(1);
     });
 });
-

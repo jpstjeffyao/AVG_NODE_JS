@@ -7,10 +7,10 @@ export class AssetManager implements IGameModule {
     public moduleName: string = "AssetManager";
     private cache: Map<string, HTMLImageElement | HTMLAudioElement> = new Map();
     private bgLayer!: HTMLDivElement;
-    private spriteLayer!: HTMLDivElement;
     
-    // 儲存立繪容器 DOM 參考，對應位置如 'left', 'center', 'right'
-    private spriteSlots: { [key: string]: HTMLDivElement } = {};
+    // REMOVED: private spriteLayer!: HTMLDivElement;
+    // REMOVED: private spriteSlots: { [key: string]: HTMLDivElement } = {};
+
 
     // 自動資源載入時嘗試的副檔名清單，提升腳本編寫的容錯率
     private supportedExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg', '.gif'];
@@ -92,38 +92,6 @@ export class AssetManager implements IGameModule {
         this.bgLayer.style.backgroundSize = 'cover';
         this.bgLayer.style.backgroundPosition = 'center';
         root.appendChild(this.bgLayer);
-
-        // 建立立繪層：位於背景之上，對話框之下
-        this.spriteLayer = document.createElement('div');
-        this.spriteLayer.id = 'sprite-layer';
-        this.spriteLayer.style.position = 'absolute';
-        this.spriteLayer.style.top = '0';
-        this.spriteLayer.style.left = '0';
-        this.spriteLayer.style.width = '100%';
-        this.spriteLayer.style.height = '100%';
-        this.spriteLayer.style.zIndex = '1';
-        this.spriteLayer.style.display = 'flex';
-        // 使用 flex 佈局均分空間給左、中、右三個插槽
-        this.spriteLayer.style.justifyContent = 'space-between';
-        this.spriteLayer.style.alignItems = 'flex-end';
-        // pointer-events 設定為 none，確保玩家點擊時能穿透此層觸發遊戲推進邏輯
-        this.spriteLayer.style.pointerEvents = 'none';
-        root.appendChild(this.spriteLayer);
-
-        // 動態建立三個立繪插槽 (左、中、右)
-        ['left', 'center', 'right'].forEach(pos => {
-            const slot = document.createElement('div');
-            slot.dataset.position = pos;
-            slot.style.width = '33%'; // 每個插槽佔據 1/3 寬度
-            slot.style.height = '100%';
-            slot.style.display = 'flex';
-            slot.style.justifyContent = 'center';
-            slot.style.alignItems = 'flex-end';
-            // 加入亮度切換動畫效果，讓說話者變換時更平滑
-            slot.style.transition = 'filter 0.3s ease';
-            this.spriteLayer.appendChild(slot);
-            this.spriteSlots[pos] = slot;
-        });
     }
 
     /**
@@ -221,84 +189,10 @@ export class AssetManager implements IGameModule {
      * @param position 放置位置
      * @param imgKey 圖像識別碼 (用於路徑檢索)
      */
-    async handleSpriteCommand(charKey: string, position: string, imgKey: string): Promise<void> {
-        // 根據 圖像Key 生成完整資源路徑 (assets/char/{圖像Key}.png)
-        // 使用 ensureLoaded 處理多種副檔名與路徑拼接
-        const success = await this.ensureLoaded(imgKey, 'char');
-        if (success) {
-            this.setSprite(imgKey, position, charKey);
-        }
-    }
-
-    /**
-     * 設定特定位置的立繪
-     * @param key 資源識別碼
-     * @param position 位置 ('left', 'center', 'right')
-     * @param name 角色名稱（用於標記）
-     */
-    /**
-     * 在特定插槽渲染立繪圖片。
-     * @param key 圖片在快取中的 Key
-     * @param position 插槽位置
-     * @param name 綁定到 DOM 的角色名稱 (用於後續尋找對話者並高亮)
-     */
-    setSprite(key: string, position: string = 'center', name: string = ''): void {
-        const slot = this.spriteSlots[position];
-        if (!slot) {
-            console.error(`[AssetManager] setSprite 錯誤：指定了無效的位置。預期為 'left', 'center', 'right'，但收到了 '${position}'。完整的指令參數為: key=${key}, name=${name}`);
-            return;
-        }
-
-        // 當設置新的立繪時，無論如何都先重設為全亮狀態
-        this.setSpriteHighlight(position, 1.0);
-
-        // 移除舊的圖片內容，確保一個插槽只有一個角色
-        slot.innerHTML = '';
-        const imgAsset = this.cache.get(key.split('/').pop() || key);
-        if (imgAsset) {
-            const img = document.createElement('img');
-            img.src = imgAsset.src;
-            // 將角色名稱存在 dataset 中，這是實現「說話者高亮」的關鍵
-            img.dataset.name = name;
-            img.style.maxHeight = '90%';
-            img.style.maxWidth = '100%';
-            img.style.objectFit = 'contain';
-            slot.appendChild(img);
-        } else {
-            // 防呆處理：若直接呼叫此函式但快取沒圖，則重新嘗試載入
-            this.ensureLoaded(key, 'char').then(success => {
-                if (success) this.setSprite(key, position, name);
-            });
-        }
-    }
-
-    /**
-     * 清除特定位置的立繪
-     */
-    clearSprite(position: string): void {
-        const slot = this.spriteSlots[position];
-        if (slot) {
-            slot.innerHTML = '';
-        }
-    }
-
-    /**
-     * 設定立繪亮度（用於說話者高亮）
-     * @param position 位置
-     * @param brightness 亮度值 (1.0 或 0.6)
-     */
-    setSpriteHighlight(position: string, brightness: number): void {
-        const slot = this.spriteSlots[position];
-        if (slot) {
-            slot.style.filter = `brightness(${brightness})`;
-        }
-    }
-
     update(): void {}
 
     shutdown(): void {
         if (this.bgLayer) this.bgLayer.remove();
-        if (this.spriteLayer) this.spriteLayer.remove();
         this.cache.clear();
     }
 }

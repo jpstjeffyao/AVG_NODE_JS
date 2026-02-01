@@ -1,0 +1,5 @@
+BG|bg_room
+SAY|主角|...
+MV|mov/Main.mp4|0.7
+# 這是一行註解
+CHARA|SHOW|hero_happy|left

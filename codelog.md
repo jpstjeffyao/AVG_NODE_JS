@@ -1,3 +1,67 @@
+# 腳本編輯器功能擴充與系統變更日誌 (2026-02-01)
+
+本次更新重點在於影片播放功能的引入、腳本編輯器對新指令的支援，以及重要錯誤的修復，確保遊戲互動的正確性。
+
+## 🎬 影片播放功能 (`MV` 指令)
+
+### 新增功能
+*   **新腳本指令 `MV|影片檔案路徑|音量(可選)`**: 支援在遊戲中全螢幕播放指定的 MP4 影片。
+    *   **影片路徑**: 需提供相對於 `assets` 資料夾的路徑，例如 `mov/main.mp4`。
+    *   **音量控制**: 可選參數，範圍 0.0 到 1.0。若未指定，預設為 1.0 (100%)。
+*   **影片中斷機制**: 使用者可透過點擊滑鼠或按下任意鍵，立即中斷影片播放，並繼續執行後續腳本指令。
+
+### 模組變更
+*   **[`src/modules/ScriptEngine.ts`](src/modules/ScriptEngine.ts)**:
+    *   擴充腳本解析邏輯，新增對 `MV` 指令的識別，提取影片路徑與音量參數。
+    *   在影片播放期間，暫停腳本引擎的執行，直到影片結束或被中斷。
+*   **[`src/modules/UIModule.ts`](src/modules/UIModule.ts)**:
+    *   新增 `playVideo(videoPath: string, volume: number)` 方法，負責動態創建、顯示、播放影片元素，並處理音量設定。
+    *   實作點擊/按鍵監聽器，用於中斷影片播放並進行清理。
+    *   影片元素以 `fixed` 定位及高 `z-index` 確保全螢幕覆蓋。
+
+## 📝 腳本編輯器與文件更新
+
+### 功能擴充
+*   **[`src/scripteditor.js`](src/scripteditor.js)**:
+    *   更新 `mainCommandRegex` 以識別 `MV` 指令，提供語法高亮。
+    *   將 `MV|` 加入 `mainCommands` 列表，使其在編輯器中提供自動完成提示。
+*   **[`scriptFormat.md`](scriptFormat.md)**:
+    *   更新腳本格式說明，詳細介紹 `MV` 指令的用法、參數（包括可選音量）及影片路徑規範。
+
+## 🐛 錯誤修復與系統穩定性提升
+
+### 1. 選單點擊意外啟動遊戲問題 (Bug Fix)
+*   **問題描述**: 遊戲在標題畫面 (`STATE_TITLE`) 時，點擊功能選單按鈕以外的任何位置（或按下空白鍵），會導致遊戲意外啟動。
+*   **修復內容**: **[`src/core/GameKernel.ts`](src/core/GameKernel.ts)** 中的 `onUserClick()` 方法新增邏輯，當前遊戲狀態為 `GameState.STATE_TITLE` 時，會直接忽略此類互動事件，防止遊戲被意外觸發。
+
+### 3. 返回選單時未清除立繪問題 (Bug Fix & 重大重構)
+*   **問題描述**: 遊戲劇情結束並返回主選單 (`STATE_TITLE`) 時，螢幕上的角色立繪並未自動清除，導致視覺殘留。
+*   **修復與重構內容**:
+    *   **釐清職責**: 重新劃分 `AssetManager` 與 `CharacterModule` 在立繪管理上的職責。現在，`AssetManager` 專注於資產（圖片、音訊）的載入與快取，不再負責 DOM 元素的插入、定位或亮度控制。
+    *   **`CharacterModule` 成為立繪 DOM 的擁有者**:
+        *   將 `spriteLayer` (立繪層) 和 `spriteSlots` (立繪插槽) 的建立與管理邏輯從 `AssetManager` 遷移至 `CharacterModule` 的 `initialize()` 方法。
+        *   `CharacterModule.show()` 方法現在直接負責從 `AssetManager` 取得已載入的 `HTMLImageElement`，然後創建 `<img>` 元素、進行樣式設定、並將其插入到正確的立繪插槽中。
+        *   `CharacterModule.show()` 同時會將這些活躍的 `HTMLImageElement` 實例儲存到其 `activeCharacters` Map 中。
+        *   `CharacterModule.hide()` 和 `CharacterModule.clear()` 方法現在可以有效利用 `activeCharacters` Map 來移除 DOM 中的立繪元素。
+        *   將 `setSpriteHighlight()` 方法從 `AssetManager` 遷移至 `CharacterModule`，使立繪亮度的控制權回歸給立繪的管理者。
+    *   **`AssetManager` 簡化**: 移除 `AssetManager` 中所有與 `spriteLayer`、`spriteSlots` 以及 `setSprite`、`clearSprite`、`setSpriteHighlight` 和 `handleSpriteCommand` 相關的屬性和方法，使其職責更加單一。
+    *   **`ScriptEngine` 適應性更新**: 修改 `SPRITE` 指令（已廢棄，相關邏輯移除）和 `SPRITE_CLR` 指令（現在呼叫 `CharacterModule.hide()`）的處理邏輯，並更新 `SAY` 指令中的立繪亮度設定，以適應 `CharacterModule` 的新 API。
+*   **測試修正**:
+    *   `tests/ScriptEngine.test.ts` 中移除已廢棄的 `SPRITE` 指令測試。
+    *   `tests/ScriptEngine.test.ts` 和 `tests/GameKernel.test.ts` 的 `beforeEach` 鉤子中，增加了更為健壯的 DOM 模擬，確保在 `GameKernel` 和各模組初始化時，`UIModule` 和 `CharacterModule` 能正確找到其依賴的 DOM 元素，從而解決了測試中持續出現的 `[UIModule] clear: _container is null` 警告。
+
+### 2. 測試環境健壯性增強
+*   **Jest 環境配置**: 將 `jest.config.js` 的 `testEnvironment` 設定為 `jsdom`，並安裝 `jest-environment-jsdom`，為前端相關測試提供模擬的瀏覽器 DOM 環境。
+*   **`GameKernel` 測試修正**: 調整 `tests/GameKernel.test.ts`，確保 `GameKernel` 實例化方式與實際應用一致，移除錯誤的單例模式測試假設。
+*   **`ScriptEngine` 測試修正**:
+    *   修復 `IF` 指令測試中 `SAY` 語法錯誤。
+    *   完善 `BGM_PLAY` 測試的音訊模擬，確保 `HTMLAudioElement` 的 `play()` 方法正確返回 Promise，解決 `TypeError: Cannot read properties of undefined (reading 'catch')` 錯誤。
+    *   為 `UIModule` 測試添加基本的 DOM 結構設置與清理，解決測試中的 `_container is null` 警告。
+    *   更新 `MV` 指令測試，使其正確預期 `playVideo` 方法接收影片路徑及預設音量參數。
+*   **TypeScript 類型一致性**: 統一測試檔案中 `GameState` 相關的狀態設定，避免使用字串字面量，改用 `GameState` 列舉成員，增強類型安全性。
+
+---
+
 # 腳本編輯器功能擴充與系統變更日誌 (2026-01-30)
 
 本次更新包含音訊載入流程優化、BGM 播放異常修復、以及角色亮度顯示邏輯的調整。

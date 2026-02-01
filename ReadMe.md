@@ -3,7 +3,20 @@
 這是一個基於 Node.js 與 TypeScript 開發的 AVG (Adventure Game) 引擎核心實驗專案。
 
 ## 核心架構
-
+/avg-engine-web
+  ├── /src
+  │    ├── /core           # 核心引擎 (Kernel, Base Classes)
+  │    ├── /modules        # 功能模組 (UI, Audio, Script, State)
+  │    │    ├── UIModule.ts
+  │    │    ├── ScriptModule.ts
+  │    │    └── ...
+  │    ├── /interfaces     # 介面定義
+  │    └── index.ts        # 進入點 (Boot)
+  ├── /DefineDocument    #定義文件
+  ├── /tests               # Jest 測試案例
+  ├── /public              # 靜態資源 (Images, Audio, Scripts)
+  ├── package.json
+  └── tsconfig.json
 - **GameKernel**: 單例模式的核心控制器，負責模組註冊與生命週期管理。
 - **StateManager**: 負責遊戲狀態、變數與旗標的管理。
 - **ScriptEngine**: 劇本解析引擎，支援 `SAY`、`SET`、`IF` 等指令。

@@ -5,8 +5,11 @@ This is an experimental Adventure Game (AVG) engine core project developed using
 **Key Components:**
 *   **GameKernel**: The singleton core controller managing module registration and lifecycle.
 *   **StateManager**: Handles game states, variables, and flags.
-*   **ScriptEngine**: Parses game scripts, supporting commands like `SAY`, `SET`, and `IF`.
-*   **UIModule**: Manages web interface rendering and user interactions.
+*   **ScriptEngine**: Parses game scripts, supporting various commands including `SAY`, `SET`, `IF`, and now `MV` for video playback.
+*   **UIModule**: Manages web interface rendering, user interactions, and now full-screen video playback.
+*   **AssetManager**: Manages game assets like images, and potentially videos.
+*   **AudioManager**: Manages background music and sound effects.
+*   **CharacterModule**: Manages character sprites.
 
 The project also includes a powerful web-based script editor (`script_editor.html`) that allows for real-time script management, editing, and previewing.
 
@@ -62,17 +65,19 @@ npm run test:coverage
 
 ## Script Format
 
-The game scripts support a specific syntax for commands:
+The game scripts support a specific syntax for commands, including:
 
 *   `SAY|Character Name|Dialogue Content`
 *   `SET|Variable Name|Value`
 *   `IF|Variable Name|Value|GOTO|Line Number`
+*   **`MV|Video File Path|Volume (Optional)`**: Plays a full-screen video with optional volume control.
+*   Other commands like `BG`, `SPRITE`, `CHARA`, `CHOICE`, `LABEL`, `GOTO`, audio commands (`[BGM_PLAY:]`, `[SFX_PLAY:]`).
 
 For detailed script formatting, refer to `scriptFormat.md`.
 
 ## Interaction
 
-In the web interface, clicking anywhere on the screen or within a dialog box will trigger the `ScriptEngine` to execute the next command in the script.
+In the web interface, clicking anywhere on the screen or within a dialog box will trigger the `ScriptEngine` to execute the next command in the script. During video playback, a click or key press will immediately skip the video. The menu screen now ignores clicks outside of specific buttons.
 
 ## Script Editor Usage
 
@@ -82,7 +87,7 @@ The `script_editor.html` provides comprehensive tools for script management:
 *   **Main Script Toggle**: Designate a script as the "Main" script for default loading.
 *   **CRUD Operations**: Create, rename, delete, and update script content.
 *   **File Upload**: Directly import `.txt` or `.md` files.
-*   **Real-time Syntax Preview**: Get instant syntax hints and script status.
+*   **Real-time Syntax Preview**: Get instant syntax hints and script status, now including the `MV` command.
 *   **Auto-save**: Edits are automatically saved to `LocalStorage`.
 *   **Execution & Sync**: Use the "Run" button to execute scripts in the game window via `postMessage`.
 

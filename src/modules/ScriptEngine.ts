@@ -211,12 +211,11 @@ export class ScriptEngine implements IGameModule {
             case 'SAY':
                 const speaker = parts[1];
                 const content = parts[2] || "";
-                const assetModuleSAY = this.kernel.assetManager;
-                if (assetModuleSAY) {
+                if (this.kernel.characterModule) { // Use characterModule directly
                     const internalCharID = this.characterNameMap[speaker] || speaker;
                     this.positionMap.forEach((charID, pos) => {
                         const brightness = (charID === internalCharID) ? 1.0 : 0.6;
-                        assetModuleSAY.setSpriteHighlight(pos, brightness);
+                        this.kernel.characterModule.setSpriteHighlight(pos as CharacterPosition, brightness);
                     });
                 }
                 const uiModule = this.kernel.uiModule;
@@ -233,30 +232,17 @@ export class ScriptEngine implements IGameModule {
                     this.isWaitingForAsset = false;
                 }
                 break;
-            case 'SPRITE':
-                if (parts.length !== 4) {
-                    console.error(`SPRITE 指令格式錯誤。 '${line}'`);
-                    break;
-                }
-                this.isWaitingForAsset = true;
-                try {
-                    const charKey = parts[1];
-                    const spritePos = parts[2];
-                    const imgKey = parts[3];
-                    this.positionMap.set(spritePos, charKey);
-                    await this.kernel.assetManager.handleSpriteCommand(charKey, spritePos, imgKey);
-                } finally {
-                    this.isWaitingForAsset = false;
-                }
-                break;
+            // REMOVED SPRITE command handler as CharacterModule now handles sprite display
             case 'SPRITE_CLR':
                 if (parts.length !== 2) {
                     console.error(`SPRITE_CLR 指令格式錯誤。 '${line}'`);
                     break;
                 }
-                const clrPos = parts[1];
+                const clrPos = parts[1] as CharacterPosition; // Cast to CharacterPosition
                 this.positionMap.delete(clrPos);
-                this.kernel.assetManager.clearSprite(clrPos);
+                if (this.kernel.characterModule) { // Use characterModule.hide
+                    this.kernel.characterModule.hide(clrPos);
+                }
                 break;
             case 'CHARA':
                 const subCommand = parts[1];
@@ -317,12 +303,13 @@ export class ScriptEngine implements IGameModule {
                     }
                 }
                 break;
-            case 'MV': // New: Play Video
+            case 'MV': // Play Video with optional volume
                 const videoPath = parts[1];
+                const volume = parts.length > 2 ? parseFloat(parts[2]) : 1.0; // Extract optional volume
                 if (this.kernel.uiModule) {
                     this.isWaitingForVideo = true;
                     try {
-                        await this.kernel.uiModule.playVideo(videoPath);
+                        await this.kernel.uiModule.playVideo(videoPath, volume); // Pass volume
                     } finally {
                         this.isWaitingForVideo = false;
                     }

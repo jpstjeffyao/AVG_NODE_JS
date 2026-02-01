@@ -66,6 +66,10 @@ export class GameKernel {
      * 處理打字機加速或執行下一行指令
      */
     public async onUserClick(): Promise<void> {
+        if (this.stateManager.getState() === GameState.STATE_TITLE) {
+            return;
+        }
+
         // 檢查是否處於等待結束互動狀態
         if (this.stateManager.getState() === GameState.STATE_WAIT_END_INTERACTION) {
             this.stateManager.setState(GameState.STATE_FADING_OUT);

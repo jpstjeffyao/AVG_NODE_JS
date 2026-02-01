@@ -42,6 +42,9 @@ describe('ScriptEngine', () => {
     let assetManager: AssetManager; // Add assetManager reference
     let audioManager: AudioManager; // Add audioManager reference
     let avgUiElement: HTMLElement; // Declare here
+    let characterContainer: HTMLElement; // Declare here for CharacterModule
+    let speakerDiv: HTMLDivElement;
+    let contentDiv: HTMLDivElement;
 
     beforeEach(() => {
         // Setup a basic DOM for UIModule to find its container
@@ -49,25 +52,48 @@ describe('ScriptEngine', () => {
         avgUiElement.id = 'avg-ui';
         document.body.appendChild(avgUiElement);
         // Also need elements for speaker and content
-        const speakerDiv = document.createElement('div');
+        speakerDiv = document.createElement('div');
         speakerDiv.id = 'speaker';
         avgUiElement.appendChild(speakerDiv);
-        const contentDiv = document.createElement('div');
+        contentDiv = document.createElement('div');
         contentDiv.id = 'content';
         avgUiElement.appendChild(contentDiv);
 
-        kernel = new GameKernel();
+        // CharacterModule also needs its container
+        characterContainer = document.createElement('div');
+        characterContainer.id = 'character-container';
+        document.body.appendChild(characterContainer);
+
+        // Mock document.getElementById to return our created elements
+        jest.spyOn(document, 'getElementById').mockImplementation((id) => {
+            if (id === 'avg-ui') return avgUiElement;
+            if (id === 'speaker') return speakerDiv;
+            if (id === 'content') return contentDiv;
+            if (id === 'character-container') return characterContainer;
+            if (id === 'game-root' || id === 'app') return document.body; // Mock game root
+            if (id === 'menu-screen') return document.createElement('div'); // Mock a menu-screen if UIModule needs it
+            return null;
+        });
+
+        kernel = new GameKernel(); // <-- Instantiated after DOM setup and mocks
         stateManager = kernel.stateManager;
         scriptEngine = kernel.scriptEngine;
         uiModule = kernel.uiModule; // Get reference from kernel
         assetManager = kernel.assetManager; // Get reference from kernel
         audioManager = kernel.audio; // Get reference from kernel
+        
+        // CharacterModule's initialize depends on DOM, call it here
+        kernel.characterModule.initialize();
     });
 
     afterEach(() => {
         jest.clearAllMocks();
+        jest.restoreAllMocks(); // Restore document.getElementById
         if (avgUiElement && avgUiElement.parentNode) {
             avgUiElement.parentNode.removeChild(avgUiElement);
+        }
+        if (characterContainer && characterContainer.parentNode) {
+            characterContainer.parentNode.removeChild(characterContainer);
         }
     });
 
@@ -125,15 +151,7 @@ describe('ScriptEngine', () => {
         expect(setBGSpy).toHaveBeenCalledWith('bg_room');
     });
 
-    test('SPRITE 指令顯示角色', async () => {
-        const script = ['SPRITE|hero|center|char_hero'];
-        const handleSpriteCommandSpy = jest.spyOn(assetManager, 'handleSpriteCommand').mockResolvedValue(undefined);
-
-        scriptEngine.loadScript(script);
-        await scriptEngine.next();
-
-        expect(handleSpriteCommandSpy).toHaveBeenCalledWith('hero', 'center', 'char_hero');
-    });
+    // REMOVED SPRITE test case
 
     test('BGM_PLAY 指令播放背景音樂', async () => {
         const script = ['[BGM_PLAY: music/FairyTale.mp3, 0.7, true]'];
@@ -156,7 +174,7 @@ describe('ScriptEngine', () => {
         scriptEngine.loadScript(script);
         await scriptEngine.next();
 
-        expect(playVideoSpy).toHaveBeenCalledWith('assets/mov/main.mp4'); // Updated path
+        expect(playVideoSpy).toHaveBeenCalledWith('assets/mov/main.mp4', 1); // Updated to expect volume
         expect(scriptEngine["isWaitingForVideo"]).toBe(false); // Should be false after awaiting
     });
 
