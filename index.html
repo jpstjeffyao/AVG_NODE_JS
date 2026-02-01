@@ -143,6 +143,25 @@
             transform: translateX(-50%);
         }
 
+        /* 畫面震動效果 */
+        @keyframes shake-effect {
+            0% { transform: translate(0, 0); }
+            10% { transform: translate(calc(var(--shake-intensity, 10px) * -1), calc(var(--shake-intensity, 10px) * -1)); }
+            20% { transform: translate(var(--shake-intensity, 10px), var(--shake-intensity, 10px)); }
+            30% { transform: translate(calc(var(--shake-intensity, 10px) * -1), var(--shake-intensity, 10px)); }
+            40% { transform: translate(var(--shake-intensity, 10px), calc(var(--shake-intensity, 10px) * -1)); }
+            50% { transform: translate(calc(var(--shake-intensity, 10px) * -1), calc(var(--shake-intensity, 10px) * -1)); }
+            60% { transform: translate(var(--shake-intensity, 10px), var(--shake-intensity, 10px)); }
+            70% { transform: translate(calc(var(--shake-intensity, 10px) * -1), var(--shake-intensity, 10px)); }
+            80% { transform: translate(var(--shake-intensity, 10px), calc(var(--shake-intensity, 10px) * -1)); }
+            90% { transform: translate(calc(var(--shake-intensity, 10px) * -1), calc(var(--shake-intensity, 10px) * -1)); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .shaking {
+            animation: shake-effect 0.3s ease-in-out;
+        }
+
     </style>
 </head>
 <body>

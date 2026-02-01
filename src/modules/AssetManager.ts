@@ -183,6 +183,37 @@ export class AssetManager implements IGameModule {
     }
 
     /**
+     * 執行背景震動效果
+     * @param intensity 震動強度 (0.0 ~ 1.0)，預設 0.5。系統會將其映射為像素位移。
+     */
+    public shakeBG(intensity: number = 0.5): void {
+        if (!this.bgLayer) return;
+
+        // 將 0.0 ~ 1.0 映射為 0px ~ 20px (可調整)
+        const pixelIntensity = Math.floor(intensity * 40) + "px";
+        
+        // 設定 CSS 變數
+        this.bgLayer.style.setProperty('--shake-intensity', pixelIntensity);
+        
+        // 移除 class 以便重新觸發動畫 (如果連續呼叫)
+        this.bgLayer.classList.remove('shaking');
+        
+        // 強制 reflow
+        void this.bgLayer.offsetWidth;
+        
+        // 加入 class 觸發動畫
+        this.bgLayer.classList.add('shaking');
+
+        // 動畫結束後移除 class (0.3s 與 CSS 定義一致)
+        setTimeout(() => {
+            if (this.bgLayer) {
+                this.bgLayer.classList.remove('shaking');
+                this.bgLayer.style.removeProperty('--shake-intensity');
+            }
+        }, 300);
+    }
+
+    /**
      * 處理由 ScriptEngine 解析後的立繪指令。
      * 負責資源的非同步確保載入與最終的 DOM 渲染。
      * @param charKey 角色識別碼 (用於 SAY 高亮判斷)

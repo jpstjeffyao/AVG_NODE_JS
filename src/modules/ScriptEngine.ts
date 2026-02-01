@@ -228,6 +228,13 @@ export class ScriptEngine implements IGameModule {
                 this.isWaitingForAsset = true;
                 try {
                     await this.kernel.assetManager.setBG(parts[1]);
+                    // 檢查是否有震動參數 (parts[2])
+                    if (parts.length > 2) {
+                        const shakeIntensity = parseFloat(parts[2]);
+                        if (!isNaN(shakeIntensity) && shakeIntensity > 0) {
+                            this.kernel.assetManager.shakeBG(shakeIntensity);
+                        }
+                    }
                 } finally {
                     this.isWaitingForAsset = false;
                 }

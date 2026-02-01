@@ -5,7 +5,8 @@
 
 ## 格式說明
 
-- **背景設定 BG|bg_room**: 設定背景為 `bg_room.jpg`。
+- **背景設定 BG|bg_room|0.5**: 設定背景為 `bg_room.jpg`。
+    *   參數3 (可選): 震動強度 (0.0 - 1.0)。若設定此參數，背景在切換時會產生短暫的震動效果。
 - **SPRITE|hero|center|char_hero**: 參數1控制顯示角色 `hero.png`，參數2位置控制為 `center`，參數3 角色圖像為 `char_hero`。
 - **SAY|主角|這裡是...獨立的編輯器視窗！**: 主角說話，內容為 `這裡是...獨立的編輯器視窗！`。
 - **SPRITE|hero_happy|center|char_hero**: 顯示角色 `hero_happy`，位置為 `center`，角色圖像為 `char_hero`。
