@@ -1,4 +1,22 @@
+# Bootstrap 資產載入錯誤修復 (2026-02-02 21:31)
+
+## 🐛 錯誤修復 (Bootstrap Asset Loading)
+
+### 移除無效的硬編碼資產預載入 (Invalid Asset Preload Removal)
+*   **問題描述**: 應用程式啟動時，控制台顯示多個資產載入失敗錯誤：
+    *   `/bg/bg_room.jpg` - 404 錯誤
+    *   `/char/hero.png` - 404 錯誤
+    *   `/char/hero_happy.png` - 404 錯誤
+*   **原因分析**: `src/index.ts` 中的 `gameAssets` 陣列硬編碼了三個不存在的資產檔案路徑。這些檔案從未存在於 `assets/bg` 或 `assets/char` 資料夾中。
+*   **修復內容**:
+    *   移除 `gameAssets` 常數陣列定義（第 5-9 行）
+    *   移除 `bootstrap()` 函數中的資產預載入邏輯（第 18-23 行）
+    *   保留核心初始化流程，因為實際使用的資產會由腳本引擎在執行時動態載入
+*   **影響範圍**: `src/index.ts`
+*   **測試結果**: 應用程式現在可以正常啟動，不再顯示資產載入錯誤訊息
+
 # 腳本編輯器功能擴充與系統變更日誌 (2026-02-02 16:30)
+
 
 ## ✨ 新功能 (Visual Preview & Workspace)
 

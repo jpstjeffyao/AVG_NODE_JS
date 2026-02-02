@@ -2,25 +2,12 @@ import { GameKernel } from './core/GameKernel';
 import { IGameModule } from './core/IGameModule';
 import { UIModule } from './modules/UIModule';
 
-const gameAssets = [
-   { key: 'bg_room', src: '/bg/bg_room.jpg' },
-   { key: 'hero', src: '/char/hero.png' },
-   { key: 'hero_happy', src: '/char/hero_happy.png' }
-];
-
 async function bootstrap() {
    console.log("Bootstrap starting...");
    const kernel = new GameKernel();
 
     // 將 kernel 實例暴露到 window 物件上
     (window as any).kernel = kernel;
-
-   // 預載入遊戲資產
-   try {
-       await kernel.assetManager.preload(gameAssets);
-   } catch (e) {
-       console.warn("[Bootstrap] Preload failed, but continuing...", e);
-   }
 
    // 嘗試從 LocalStorage 載入主劇本 (Main Script)
    let initialScript: string[] = [];
