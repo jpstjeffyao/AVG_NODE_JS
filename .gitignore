@@ -1,7 +1,21 @@
-# 忽略临时文件
-~$*
-*.tmp
-*.swp
-*.lock
-*.bak
-*.xlsx
+# Dependency directories
+node_modules/
+
+# Build and coverage outputs
+dist/
+coverage/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Project specific asset ignores
+assets/**/*.txt
+
+# Logs
+*.log
+codelog.md.bak
