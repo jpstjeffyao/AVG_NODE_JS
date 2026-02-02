@@ -105,11 +105,16 @@ In the web interface, clicking anywhere on the screen or within a dialog box wil
 
 The `script_editor.html` provides comprehensive tools for script management:
 
-*   **Multi-script Management**: Store and manage multiple script files in the browser.
-*   **Main Script Toggle**: Designate a script as the "Main" script for default loading.
-*   **CRUD Operations**: Create, rename, delete, and update script content.
-*   **File Upload**: Directly import `.txt` or `.md` files.
-*   **Real-time Syntax Preview**: Get instant syntax hints and script status, now including the `MV` command.
+*   **Multi-script Management**: Store and manage multiple script files in the browser via LocalStorage.
+*   **Script List Panel**: A new sidebar panel showing all scripts, sorted alphabetically (A-Z) for better sequencing (e.g., `Script01-01`, `Script01-02`).
+*   **Search & Filter**: Real-time search box to filter the script list.
+*   **CRUD Operations**: 
+    *   **Add (+)**: Create new scripts via the toolbar button.
+    *   **Rename (✎)**: Rename the current script via the toolbar button.
+    *   **Delete (🗑)**: Delete the current script via the toolbar button.
+*   **Main Script Toggle**: Right-click a script in the list to set it as the "Main" script.
+*   **File Import/Export**: Open local `.txt` or `.md` files directly.
+*   **Real-time Syntax Preview**: Get instant syntax hints and script status.
 *   **Auto-save**: Edits are automatically saved to `LocalStorage`.
 *   **Execution & Sync**: Use the "Run" button to execute scripts in the game window via `postMessage`.
 

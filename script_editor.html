@@ -14,6 +14,7 @@
         /* CodeMirror 編輯器應填滿其容器 */
         .CodeMirror {
             flex: 1;
+            height: 100%; /* 確保高度填滿，讓捲軸正常運作 */
             font-size: 14px;
             line-height: 1.5;
         }
@@ -30,103 +31,292 @@
             overflow: hidden;
         }
 
-        /* 側邊欄編輯器容器 */
-        #editor-container {
-            width: 400px;
+        /* 1. 左側：劇本清單側邊欄 */
+        #sidebar-list {
+            width: 290px;
             background: #252526;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            border-right: 1px solid #333;
+            z-index: 10;
+            transition: width 0.3s ease; /* 加入過渡動畫 */
+            overflow: hidden; /* 確保內容在折疊時不溢出 */
+            white-space: nowrap;
+        }
+
+        #sidebar-list.collapsed {
+            width: 0;
+            border-right: none;
+        }
+
+        #sidebar-title {
+            font-size: 1.2em;
+            padding: 15px;
+            color: #ccc;
+            font-weight: bold;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+        }
+
+        /* 2. 中間：編輯器容器 (原側邊欄) */
+        #editor-container {
+            flex: 1; /* RWD 自適應 */
+            min-width: 400px;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
             box-sizing: border-box;
             border-right: 1px solid #333;
-            transition: transform 0.3s ease-in-out;
             position: relative;
-            z-index: 10;
         }
 
-        /* 當收合時的樣式 */
-        #editor-container.collapsed {
-            transform: translateX(-100%);
-        }
-
-        /* 收合/展開按鈕 */
-        #toggle-sidebar {
-            position: absolute;
-            right: -30px;
-            top: 10px;
-            width: 30px;
-            height: 60px;
-            background: #0e639c;
-            color: white;
-            border: none;
-            border-radius: 0 4px 4px 0;
+        /* 側邊欄切換按鈕 */
+        #toggle-sidebar-btn {
+            background: none;
+            border: 1px solid #444;
+            color: #ccc;
             cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        #toggle-sidebar-btn:hover {
+            background-color: #3e3e3e;
+            color: white;
+        }
+
+        #editor-header {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            outline: none;
+            align-items: center; /* 改為靠左對齊內容 */
+            margin-bottom: 10px;
         }
 
         #editor-title {
-            font-size: 1.5em;
-            margin-bottom: 15px;
+            font-size: 1.2em;
             color: #007acc;
             font-weight: bold;
+            flex: 1; /* 標題佔據剩餘空間 */
+        }
+
+        /* 劇本清單面板樣式 (移至左側) */
+        #script-list-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #script-list-controls {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            gap: 5px;
+            background-color: #252526;
+        }
+
+        #script-search {
+            flex: 1;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            color: #d4d4d4;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background-color: #3e3e3e;
+            color: #fff;
+        }
+
+        #script-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .script-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #aaa;
+        }
+
+        .script-item:hover {
+            background-color: #2a2d2e;
+            color: #fff;
+        }
+
+        .script-item.active {
+            background-color: #37373d;
+            border-left: 3px solid #007acc;
+            color: #fff;
+        }
+
+        .script-item .script-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .script-item .main-badge {
+            font-size: 10px;
+            background: #0e639c;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-left: 5px;
+            display: none;
+        }
+        
+        .script-item.is-main .main-badge {
+            display: inline-block;
         }
 
         #script-editor {
-            flex: 1;
-            background: #1e1e1e;
-            color: #d4d4d4;
+            flex: 1; 
+            display: flex;
+            flex-direction: column;
             border: 1px solid #333;
             border-radius: 4px;
-            padding: 15px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 14px;
-            resize: none;
-            line-height: 1.5;
-            outline: none;
+            overflow: hidden;
+            margin-bottom: 10px;
         }
 
-        #script-editor:focus {
-            border-color: #007acc;
+        .button-group {
+            display: flex;
+            gap: 10px;
+            height: 42px; 
         }
 
         #run-button, #load-example-btn {
-            margin-top: 15px;
-            padding: 12px;
+            flex: 1;
+            padding: 10px;
             background-color: #0e639c;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 1.1em;
+            font-size: 14px;
             transition: background 0.2s;
+            margin-top: 0;
         }
 
         #run-button:hover, #load-example-btn:hover {
             background-color: #1177bb;
         }
-
+        
         #load-example-btn {
             background-color: #3e3e3e;
-            margin-top: 10px;
         }
-
         #load-example-btn:hover {
             background-color: #4e4e4e;
         }
 
-        /* 右側預覽區域 */
+        .file-operations {
+            margin-top: auto; /* 推到底部 */
+            padding: 10px;
+            border-top: 1px solid #333;
+            background: #252526;
+        }
+
+        /* 3. 右側：預覽區域 */
         #main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             padding: 20px;
             background: #1e1e1e;
-            transition: margin-left 0.3s ease-in-out;
+            border-left: 1px solid #333;
+            padding-bottom: 62px; 
+            box-sizing: border-box;
         }
+
+        /* 預覽舞台樣式 */
+        #preview-stage {
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #000;
+            position: relative;
+            margin-bottom: 20px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        #preview-stage-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #preview-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            z-index: 1;
+        }
+
+        .preview-char {
+            position: absolute;
+            bottom: 0;
+            height: 90%; /* 立繪高度 */
+            width: auto;
+            z-index: 2;
+            transition: opacity 0.2s;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+
+        #p-char-left { left: 10%; transform: translateX(-50%); }
+        #p-char-center { left: 50%; transform: translateX(-50%); }
+        #p-char-right { right: 10%; transform: translateX(50%); }
+        
+        #preview-msg-box {
+            position: absolute;
+            bottom: 10px;
+            left: 5%;
+            width: 90%;
+            height: 25%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #fff;
+            border-radius: 5px;
+            z-index: 3;
+            padding: 10px;
+            box-sizing: border-box;
+            display: none; /* 預設隱藏 */
+            color: white;
+            font-size: 14px;
+            pointer-events: none;
+        }
+        #preview-msg-name { font-weight: bold; color: #f0e68c; margin-bottom: 5px; }
+        #preview-msg-text { line-height: 1.4; }
+
 
         #syntax-preview {
             margin-top: auto;
@@ -148,37 +338,68 @@
     </style>
 </head>
 <body>
-    <!-- 左側編輯器側邊欄：包含腳本輸入、執行按鈕與範例載入 -->
-    <div id="editor-container">
-        <!-- 側邊欄切換按鈕 -->
-        <button id="toggle-sidebar" title="切換側邊欄">◀</button>
-        <div id="editor-title">AVG Script Editor</div>
-        <!-- CodeMirror 編輯器容器 -->
-        <div id="editor" style="flex: 1; border: 1px solid #333; border-radius: 4px; overflow: hidden;"></div>
-        <!-- 儲存並將劇本發送到遊戲主視窗的按鈕 -->
-        <button id="run-button">執行腳本 (Run)</button>
-        <!-- 載入預設劇本範本的按鈕 -->
-        <button id="load-example-btn">載入範例</button>
-
-        <div class="file-operations" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
-            <button id="open-file-btn" style="width: 100%; padding: 10px; margin-bottom: 10px;">開啟檔案</button>
-            <button id="save-file-btn" style="width: 100%; padding: 10px; margin-bottom: 10px;">儲存檔案</button>
-            <input type="file" id="file-uploader" accept=".txt,.md" style="display: none;">
-            <button id="upload-script-btn" style="width: 100%; padding: 10px; background-color: #555;">(舊版)上傳腳本</button>
+    <!-- 1. 左側：劇本清單 -->
+    <div id="sidebar-list">
+        <div id="sidebar-title">劇本管理</div>
+        <div id="script-list-panel">
+            <div id="script-list-controls">
+                <input type="text" id="script-search" placeholder="搜尋劇本...">
+                <button class="icon-btn" id="add-script-btn" title="新增劇本">＋</button>
+                <button class="icon-btn" id="rename-script-btn" title="重新命名">✎</button>
+                <button class="icon-btn" id="set-main-btn" title="設為主劇本 (Default)">★</button>
+                <button class="icon-btn" id="delete-script-btn" title="刪除劇本">🗑</button>
+            </div>
+            <ul id="script-list">
+                <!-- 劇本列表將由 JS 動態生成 -->
+            </ul>
         </div>
-
-        <div style="margin-top: 10px;">
-            <input type="checkbox" id="overwrite-main-checkbox">
-            <label for="overwrite-main-checkbox">覆蓋主腳本 (用於舊版上傳)</label>
+        
+        <!-- 檔案操作按鈕移至左側底部 -->
+        <div class="file-operations">
+            <button id="open-file-btn" style="width: 100%; padding: 8px; margin-bottom: 5px; cursor: pointer;">開啟檔案 (本機)</button>
+            <button id="save-file-btn" style="width: 100%; padding: 8px; margin-bottom: 5px; cursor: pointer;">儲存檔案 (本機)</button>
+            <input type="file" id="file-uploader" accept=".txt,.md" style="display: none;">
+            <button id="upload-script-btn" style="width: 100%; padding: 8px; background-color: #555; color: #ccc; border:none; cursor: pointer;">匯入 (舊版)</button>
+             <div style="margin-top: 5px; font-size: 12px;">
+                <input type="checkbox" id="overwrite-main-checkbox">
+                <label for="overwrite-main-checkbox">覆蓋主腳本</label>
+            </div>
         </div>
     </div>
 
-    <!-- 右側主內容區：目前用於顯示即時語法分析預覽 -->
-    <div id="main-content">
-        <!-- 佔位區塊，未來可用於更進階的即時渲染預覽 -->
-        <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #555;">
-            <h2>遊戲預覽區域 (模擬)</h2>
+    <!-- 2. 中間：主要編輯區 -->
+    <div id="editor-container">
+        <div id="editor-header">
+            <!-- 側邊欄折疊按鈕 -->
+            <button id="toggle-sidebar-btn" title="展開/收起劇本清單">☰</button>
+            <div id="editor-title">AVG Script Editor</div>
         </div>
+
+        <!-- CodeMirror 編輯器容器 -->
+        <div id="editor" style="flex: 1; border: 1px solid #333; border-radius: 4px; overflow: hidden; margin-bottom: 10px;"></div>
+        
+        <div class="button-group">
+            <button id="run-button">執行腳本 (Run)</button>
+            <button id="load-example-btn">載入範例</button>
+        </div>
+    </div>
+
+    <!-- 3. 右側：語法預覽區 -->
+    <div id="main-content">
+        <!-- 視覺預覽舞台 -->
+        <div id="preview-stage">
+            <div id="preview-stage-content">
+                <img id="preview-bg" src="" alt="Background" style="display:none;">
+                <img id="p-char-left" class="preview-char" src="" style="display:none;">
+                <img id="p-char-center" class="preview-char" src="" style="display:none;">
+                <img id="p-char-right" class="preview-char" src="" style="display:none;">
+                <div id="preview-msg-box">
+                    <div id="preview-msg-name"></div>
+                    <div id="preview-msg-text"></div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 指令語法提示標籤 -->
         <div id="preview-label">即時語法分析預覽</div>
         <!-- 顯示當前輸入行之指令解析結果的區域 -->

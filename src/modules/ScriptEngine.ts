@@ -279,6 +279,18 @@ export class ScriptEngine implements IGameModule {
             case 'SET':
                 this.stateManager.setValue(parts[1], parseInt(parts[2]));
                 break;
+            case 'CALL_SCRIPT':
+                const nextScriptName = parts[1];
+                const nextScriptContent = localStorage.getItem(`scripteditor_script_${nextScriptName}`);
+                if (nextScriptContent) {
+                    const nextLines = nextScriptContent.split('\n');
+                    console.log(`[ScriptEngine] Switching to script: ${nextScriptName}`);
+                    this.loadScript(nextLines);
+                    // loadScript resets currentLineIndex to 0, so the loop will continue from the start of the new script
+                } else {
+                    console.error(`[ScriptEngine] Script not found in LocalStorage: ${nextScriptName}`);
+                }
+                break;
             case 'BGM':
             case 'SE':
                  this.isWaitingForAsset = true;

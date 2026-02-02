@@ -1,0 +1,63 @@
+﻿TYPE,PATH,DESC,SIZE
+Background,assets\bg\bg_01.jpg,熱鬧的城鎮中心,3685x2899
+Background,assets\bg\Main.png,主題封面，內容是中世紀風格幻想的城堡背景,1536x1024
+Background,assets\bg\bg_02.jpg,地牢內部,1024x1024
+Background,assets\bg\bg_03.jpg,陽光下的田園村落,1536x1024
+Background,assets\bg\bg_04.jpg,夜晚的鐘樓廣場 ,1280x720
+Background,assets\bg\bg_05.jpg,夜晚的城鎮廣場(無人) ,1280x720
+Background,assets\bg\bg_06.jpg,鬧區中的巨大帷幕,1280x720
+Background,assets\bg\bg_07.jpg,皇宮王座,1280x720
+Background,assets\bg\bg_08.jpg,皇室寢宮 明亮,1280x720
+Background,assets\bg\bg_09.jpg,皇室寢宮 早晨,1280x720
+Background,assets\bg\bg_10.jpg,地牢外部,1280x720
+Background,assets\bg\bg_11.jpg,一般寢室,1280x720
+Background,assets\bg\bg_12.jpg,哥布林洞窟門口,1280x720
+Background,assets\bg\bg_13.jpg,哥布林洞窟 蟲穴(產卵室),1280x720
+Background,assets\bg\bg_14.jpg,哥布林洞窟 洞穴(充滿黏液的房間),1280x720
+Background,assets\bg\bg_15.jpg,哥布林洞窟 獻祭壇(石床),1280x720
+Background,assets\bg\bg_16.jpg,一般寢室2,1280x720
+Background,assets\bg\bg_17.jpg,哥布林洞窟 石王座,1280x720
+Background,assets\bg\bg_18.jpg,哥布林洞窟 監牢(有石床),1280x720
+Background,assets\bg\bg_19.jpg,哥布林洞窟 餐廳(有石桌),1280x720
+Background,assets\bg\bg_20.jpg,城鎮地下道,1280x720
+CharacterImage,assets\char\elizabeth_happy_L.png,elizabeth with happy,
+CharacterImage,assets\char\elizabeth_happy_R.png,elizabeth with happy,
+CharacterImage,assets\char\elizabeth_neutral_L.png,elizabeth with neutral,
+CharacterImage,assets\char\elizabeth_neutral_R.png,elizabeth with neutral,
+CharacterImage,assets\char\elizabeth_sad_L.png,elizabeth with sad,
+CharacterImage,assets\char\elizabeth_sad_R.png,elizabeth with sad,
+CharacterImage,assets\char\elizabeth_surprised_L.png,elizabeth with surprised,
+CharacterImage,assets\char\elizabeth_surprised_R.png,elizabeth with surprised,
+CharacterImage,assets\char\Captain_angry.png,Captain with angry,
+CharacterImage,assets\char\Captain_happy.png,Captain with happy,
+CharacterImage,assets\char\Captain_neutral.png,Captain with neutral,
+CharacterImage,assets\char\Captain_sad.png,Captain with sad,
+CharacterImage,assets\char\Goblin_neutral.png,Captain with sad,
+CharacterImage,assets\char\Goblin_surprised.png,Captain with sad,
+Video,assets\mov\Main.mp4,女王揮舞著魔法仗，適合用在封面頁,
+Video,assets\mov\001.mp4,伊莉莎白在寢室床上邀請你來,
+Video,assets\mov\002.mp4,伊莉莎白在寢室床上害羞的翻滾,
+Video,assets\mov\003.mp5,伊莉莎白被哥布林綁住掙扎中,
+Video,assets\mov\004.mp5,伊莉莎白被哥布林羞辱後掙扎著,
+EffectSound,assets\sound\busy-cafeteria-sound-27972.mp3,市集/咖啡廳/餐廳的背景聲音、人群吵雜的聲音,
+EffectSound,assets\sound\cicadas-wav-55263.mp3,蟲鳴聲 用在夏日的戶外或花園 公園等地方,
+EffectSound,assets\sound\comedic-silence-90574.mp3,蟋蟀叫聲、用於夜晚 夜深人靜時,
+EffectSound,assets\sound\desert-wind-gust-sound-effect-473421.mp3,風吹聲、大風,
+EffectSound,assets\sound\door-creaking-sound-effect-241381.mp3,老舊的關門或開門聲,
+EffectSound,assets\sound\fire-sound-334130.mp3,柴火聲 比較明顯(火比較大),
+EffectSound,assets\sound\firewood-burning-sound-179862.mp3,柴火燃燒聲 比較安靜,
+EffectSound,assets\sound\gated-drop-sound-effect-240900.mp3,效果音 用在集中、特殊事件時,
+EffectSound,assets\sound\mid-nights-sound-291477.mp3,晚上的背景聲音 蟲鳴聲,
+EffectSound,assets\sound\mouse-squeaks-68287.mp3,老鼠叫聲，用在地牢、監獄或陰暗的水溝地下道中,
+EffectSound,assets\sound\rain-sound-272604.mp3,下雨聲 較小聲,
+EffectSound,assets\sound\real-rain-sound-379215.mp3,下雨或流水聲 明顯的 或雨勢水勢較大,
+EffectSound,assets\sound\running-stream-water-sound-239612.mp3,流水聲 明顯或靠近的水聲,
+EffectSound,assets\sound\thunder-sound-375727.mp3,雷雨聲,
+Music,assets\music\FairyTale.mp3,中世紀幻想風格音樂,
+Music,assets\music\BGM_01_柔和的農村.wav,鄉下農莊的風景 漫步在農田與村落之間,
+Music,assets\music\BGM_02_宮廷.wav,恢弘的氣勢 王座前面的富麗堂皇,
+Music,assets\music\BGM03_神秘神聖的.wav,神秘又神聖的風格,
+Music,assets\music\BGM04_壓抑不安的.wav,壓抑不安的  令人緊張的,
+Music,assets\music\BGM05_穩定進行的.wav,穩定進行的 適合各種場合的音樂,
+Music,assets\music\BGM06_緊張不安的.wav,不協調的感覺 令人感到害怕,
+Music,assets\music\BGM07_威嚴壯麗的.wav,威嚴壯麗的 不管用在景色還是敘事上,

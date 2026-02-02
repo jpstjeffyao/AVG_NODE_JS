@@ -32,7 +32,7 @@ const ScriptManager = (function() { /* ... (內容與之前相同，此處省略
     function setCurrentScriptName(name) { currentScriptName = name; }
     function handleFileUpload(file, overwriteMain = false) { return new Promise((resolve, reject) => { if (!file.name.match(/\.(txt|md)$/)) return reject("僅支援 .txt 或 .md"); const reader = new FileReader(); reader.onload = (e) => { const content = e.target.result; if (overwriteMain) { const mainScript = scripts.find(s => s.isMain); if (mainScript) { saveScript(mainScript.name, content); resolve({ name: mainScript.name, content, action: 'overwrite' }); } else reject("找不到主腳本"); } else { let baseName = file.name.replace(/\.[^/.]+$/, ""), finalName = baseName, i = 1; while (scripts.find(s => s.name === finalName)) finalName = `${baseName}_${i++}`; addScript(finalName, content); resolve({ name: finalName, content, action: 'add' }); } }; reader.onerror = () => reject("檔案讀取失敗"); reader.readAsText(file); }); }
     init();
-    return { getScriptList, getScriptContent, saveScript, addScript, deleteScript, renameScript, setMainScript, handleFileUpload, onListChangedCallback, getCurrentScriptName, setCurrentScriptName };
+    return { getScriptList, getScriptContent, saveScript, addScript, deleteScript, renameScript, setMainScript, handleFileUpload, onScriptListChanged, getCurrentScriptName, setCurrentScriptName };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -117,19 +117,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function initEditor() {
         editor = CodeMirror(editorParent, {
             value: ScriptManager.getScriptContent(ScriptManager.getCurrentScriptName()),
-            mode: 'avg-script', // <-- USE THE CUSTOM MODE
+            mode: 'avg-script',
             theme: 'darcula',
             lineNumbers: true,
             extraKeys: { "Ctrl-Space": "autocomplete" },
             hintOptions: { hint: CodeMirror.helpers.hint.avg }
         });
-        updateEditorTitle();
+        updateEditorTitle(false); 
         updatePreview(editor.getValue());
+        updateVisualPreview(editor.getValue()); // Initial visual preview
+
         editor.on('change', (cm) => {
             const content = cm.getValue();
             updatePreview(content);
-            ScriptManager.saveScript(ScriptManager.getCurrentScriptName(), content);
+            updateVisualPreview(content); // Update visual on change
+
+            const currentName = ScriptManager.getCurrentScriptName();
+            if (!currentFileHandle) {
+                ScriptManager.saveScript(currentName, content);
+                updateEditorTitle(true); 
+            }
         });
+        
+        // Update visual preview on cursor movement to reflect context at that line
+        editor.on('cursorActivity', (cm) => {
+             updateVisualPreview(cm.getValue());
+        });
+
+        // 監聽輸入前動作，切換為「編輯中」
+        editor.on('beforeChange', () => {
+            if (!currentFileHandle) {
+                updateEditorTitle(false); 
+            }
+        });
+
         editor.on("inputRead", (cm, event) => {
             if (!cm.state.completionActive && /[\w|\[]/.test(event.text[0])) {
                 cm.showHint({ completeSingle: false });
@@ -137,21 +158,280 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- File System API Logic & UI (Same as before) ---
+    // --- Sidebar Toggle Logic ---
+    const sidebar = document.getElementById('sidebar-list');
+    const toggleBtn = document.getElementById('toggle-sidebar-btn');
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    // --- Visual Preview Logic ---
+    function updateVisualPreview(fullText) {
+        const cursor = editor.getCursor();
+        const currentLineIndex = cursor.line;
+        const lines = fullText.split('\n');
+        
+        // State to track
+        let lastBG = null;
+        const chars = { left: null, center: null, right: null };
+        let activeDialog = null;
+
+        // Scan backwards from current line to find states
+        // Strategy: Scan entire script up to current line to simulate state accumulation
+        // Limitation: Does not handle GOTO/IF logic, linear scan only.
+        
+        for (let i = 0; i <= currentLineIndex; i++) {
+            const line = lines[i].trim();
+            if (!line || line.startsWith('#')) continue;
+            
+            const parts = line.split('|');
+            const cmd = parts[0].toUpperCase();
+
+            if (cmd === 'BG') {
+                lastBG = parts[1];
+            } else if (cmd === 'CHARA') {
+                const subCmd = parts[1];
+                if (subCmd === 'SHOW') {
+                    // CHARA|SHOW|img|pos
+                    const img = parts[2];
+                    const pos = parts[3] ? parts[3].toLowerCase() : 'center';
+                    if (['left', 'center', 'right'].includes(pos)) {
+                        chars[pos] = img;
+                    }
+                } else if (subCmd === 'HIDE') {
+                    const pos = parts[2] ? parts[2].toLowerCase() : 'center';
+                    if (['left', 'center', 'right'].includes(pos)) chars[pos] = null;
+                } else if (subCmd === 'CLEAR') {
+                    chars.left = null; chars.center = null; chars.right = null;
+                }
+            } else if (cmd === 'SPRITE') {
+                // Compatible with old SPRITE|img|pos|...
+                const img = parts[1];
+                const pos = parts[2] ? parts[2].toLowerCase() : 'center';
+                 if (['left', 'center', 'right'].includes(pos)) {
+                    chars[pos] = img;
+                }
+            } else if (cmd === 'SPRITE_CLR') {
+                 const pos = parts[1] ? parts[1].toLowerCase() : 'center';
+                 if (['left', 'center', 'right'].includes(pos)) chars[pos] = null;
+            }
+
+            // Only show dialog if it's the CURRENT line
+            if (i === currentLineIndex && cmd === 'SAY') {
+                activeDialog = { name: parts[1], text: parts[2] };
+            } else {
+                activeDialog = null; // Reset dialog if moving past it
+            }
+        }
+
+        // Apply to DOM
+        const bgImg = document.getElementById('preview-bg');
+        if (lastBG) {
+            // Try explicit path or guess extension. Here assuming structure matches assets
+            // Common convention in this project seems to be filenames without extension in script? 
+            // Actually assets listing shows extensions. 
+            // If script says "BG|bg_room", file is "bg_room.jpg". 
+            // If script says "BG|bg_room.jpg", file is "bg_room.jpg".
+            let src = lastBG.includes('/') ? lastBG : `assets/bg/${lastBG}`;
+            if (!src.match(/\.(jpg|png|jpeg)$/i)) src += '.jpg'; // Default to jpg for BG
+            
+            // Allow png fallback? Browsers don't support "try urls" natively easily without JS check.
+            // For now, assume jpg for BG as per project convention, or check if name has extension.
+            if (lastBG.includes('.')) src = `assets/bg/${lastBG}`;
+
+            if (bgImg.src !== window.location.origin + '/' + src) { // Avoid reload if same
+                 bgImg.style.display = 'block';
+                 bgImg.src = src;
+                 // Simple error handler to try png if jpg fails
+                 bgImg.onerror = function() { 
+                     if (this.src.endsWith('.jpg')) this.src = this.src.replace('.jpg', '.png'); 
+                 };
+            }
+        } else {
+            bgImg.style.display = 'none';
+        }
+
+        ['left', 'center', 'right'].forEach(pos => {
+            const imgEl = document.getElementById(`p-char-${pos}`);
+            const charName = chars[pos];
+            if (charName) {
+                let src = `assets/char/${charName}`;
+                if (!src.match(/\.(png|jpg)$/i)) src += '.png'; // Default to png for chars
+                 
+                if (imgEl.src !== window.location.origin + '/' + src) {
+                    imgEl.style.display = 'block';
+                    imgEl.src = src;
+                }
+                imgEl.style.display = 'block'; // Ensure visible
+            } else {
+                imgEl.style.display = 'none';
+            }
+        });
+
+        const msgBox = document.getElementById('preview-msg-box');
+        if (activeDialog) {
+            msgBox.style.display = 'block';
+            document.getElementById('preview-msg-name').textContent = activeDialog.name;
+            document.getElementById('preview-msg-text').textContent = activeDialog.text;
+        } else {
+            msgBox.style.display = 'none';
+        }
+    }
+
+    // --- Script List UI Logic ---
+    const scriptListEl = document.getElementById('script-list');
+    const searchInput = document.getElementById('script-search');
+    
+    function renderScriptList() {
+        scriptListEl.innerHTML = '';
+        const scripts = ScriptManager.getScriptList();
+        const filter = searchInput.value.toLowerCase();
+        const currentName = ScriptManager.getCurrentScriptName();
+
+        // Sort scripts alphabetically
+        scripts.sort((a, b) => a.name.localeCompare(b.name));
+
+        scripts.forEach(script => {
+            if (script.name.toLowerCase().includes(filter)) {
+                const li = document.createElement('li');
+                li.className = 'script-item';
+                if (script.name === currentName) li.classList.add('active');
+                if (script.isMain) li.classList.add('is-main');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'script-name';
+                nameSpan.textContent = script.name;
+                
+                const mainBadge = document.createElement('span');
+                mainBadge.className = 'main-badge';
+                mainBadge.textContent = 'MAIN';
+
+                li.appendChild(nameSpan);
+                li.appendChild(mainBadge);
+
+                li.addEventListener('click', () => {
+                    if (ScriptManager.getCurrentScriptName() !== script.name) {
+                        ScriptManager.setCurrentScriptName(script.name);
+                        editor.setValue(ScriptManager.getScriptContent(script.name));
+                        // Clear file handle when switching internal scripts
+                        currentFileHandle = null; 
+                        updateEditorTitle();
+                        renderScriptList();
+                    }
+                });
+
+                // Context menu for "Set as Main"
+                li.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (confirm(`將 "${script.name}" 設定為主劇本 (Main Script)?`)) {
+                        ScriptManager.setMainScript(script.name);
+                        renderScriptList();
+                    }
+                });
+
+                scriptListEl.appendChild(li);
+            }
+        });
+    }
+
+    // Connect ScriptManager updates to UI
+    ScriptManager.onScriptListChanged(renderScriptList);
+
+    // Search Handler
+    searchInput.addEventListener('input', renderScriptList);
+
+    // Button Handlers
+    document.getElementById('add-script-btn').addEventListener('click', () => {
+        const name = prompt("請輸入新劇本名稱 (例如: Script01-01):");
+        if (name) {
+            if (ScriptManager.addScript(name)) {
+                // Auto switch to new script
+                ScriptManager.setCurrentScriptName(name);
+                editor.setValue(""); 
+                currentFileHandle = null;
+                updateEditorTitle();
+                renderScriptList();
+            } else {
+                alert("劇本名稱已存在或是無效。");
+            }
+        }
+    });
+
+    document.getElementById('rename-script-btn').addEventListener('click', () => {
+        const currentName = ScriptManager.getCurrentScriptName();
+        const newName = prompt(`請輸入 "${currentName}" 的新名稱:`, currentName);
+        if (newName && newName !== currentName) {
+            if (ScriptManager.renameScript(currentName, newName)) {
+                updateEditorTitle(false);
+                // renderScriptList called via callback
+            } else {
+                alert("重新命名失敗 (名稱可能已存在)。");
+            }
+        }
+    });
+
+    document.getElementById('set-main-btn').addEventListener('click', () => {
+        const currentName = ScriptManager.getCurrentScriptName();
+        if (confirm(`確認將 "${currentName}" 設定為遊戲啟動的主劇本 (Main Script)?`)) {
+            ScriptManager.setMainScript(currentName);
+            renderScriptList();
+        }
+    });
+
+    document.getElementById('delete-script-btn').addEventListener('click', () => {
+        const currentName = ScriptManager.getCurrentScriptName();
+        if (confirm(`確定要刪除劇本 "${currentName}" 嗎? 此動作無法復原。`)) {
+            if (ScriptManager.deleteScript(currentName)) {
+                // Switch to the new current script (handled by deleteScript logic usually resetting current, but we need to sync editor)
+                const newCurrent = ScriptManager.getCurrentScriptName();
+                editor.setValue(ScriptManager.getScriptContent(newCurrent));
+                currentFileHandle = null;
+                updateEditorTitle();
+                // renderScriptList called via callback
+            } else {
+                alert("無法刪除 (至少保留一個劇本)。");
+            }
+        }
+    });
+
+    // --- 檔案系統 API 邏輯與 UI ---
     async function openFile() { try { [currentFileHandle] = await window.showOpenFilePicker({ types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt', '.md'] } }], multiple: false }); const file = await currentFileHandle.getFile(); const content = await file.text(); editor.setValue(content); ScriptManager.setCurrentScriptName(currentFileHandle.name); updateEditorTitle(); } catch (err) { if (err.name !== 'AbortError') console.error("開啟檔案失敗:", err); } }
     async function saveFile() { try { if (currentFileHandle) { const writable = await currentFileHandle.createWritable(); await writable.write(editor.getValue()); await writable.close(); alert(`檔案 "${currentFileHandle.name}" 已儲存。`); } else { const handle = await window.showSaveFilePicker({ types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt', '.md'] } }] }); currentFileHandle = handle; await saveFile(); updateEditorTitle(); } } catch (err) { if (err.name !== 'AbortError') console.error("儲存檔案失敗:", err); } }
-    function updateEditorTitle() { if (currentFileHandle) { editorTitle.textContent = `編輯中: ${currentFileHandle.name}`; } else { editorTitle.textContent = 'AVG Script Editor'; } }
+    
+    function updateEditorTitle(isSaved = false) { 
+        const currentName = ScriptManager.getCurrentScriptName();
+        if (currentFileHandle) { 
+            editorTitle.textContent = `編輯中 (檔案): ${currentFileHandle.name}`; 
+            editorTitle.style.color = "#007acc";
+        } else { 
+            if (isSaved) {
+                editorTitle.textContent = `已儲存 (本機): ${currentName}`;
+                editorTitle.style.color = "#4ec9b0"; // 綠色表示儲存完成
+            } else {
+                editorTitle.textContent = `編輯中 (本機): ${currentName}`; 
+                editorTitle.style.color = "#007acc"; // 藍色表示編輯中
+            }
+        } 
+    }
+
     function updatePreview(text) { const syntaxPreview = document.getElementById('syntax-preview'); if (!syntaxPreview) return; const lines = text.split('\n'); const lastLine = lines[lines.length - 1] || ""; syntaxPreview.textContent = `[檔案: ${currentFileHandle ? currentFileHandle.name : ScriptManager.getCurrentScriptName()}] [行: ${lines.length}]`; }
     document.getElementById('open-file-btn').addEventListener('click', openFile);
     document.getElementById('save-file-btn').addEventListener('click', saveFile);
     document.getElementById('run-button').addEventListener('click', () => { const scriptText = editor.getValue(), scriptName = currentFileHandle ? currentFileHandle.name : ScriptManager.getCurrentScriptName(); if (window.opener) { window.opener.postMessage({ type: 'UPDATE_SCRIPT', script: scriptText, scriptName }, '*'); } else { alert(`劇本 "${scriptName}" 已儲存，但找不到主遊戲視窗。`); } });
     document.getElementById('load-example-btn').addEventListener('click', () => { editor.setValue(`BG|bg_room\nSAY|主角|...\n# 這是一行註解\nCHARA|SHOW|hero_happy|left`); currentFileHandle = null; updateEditorTitle(); });
-    document.getElementById('toggle-sidebar').addEventListener('click', (e) => { const container = document.getElementById('editor-container'); container.classList.toggle('collapsed'); e.currentTarget.textContent = container.classList.contains('collapsed') ? '▶' : '◀'; });
+    // Toggle sidebar logic removed for 3-column layout
+    
     const fileUploader = document.getElementById('file-uploader'), uploadBtn = document.getElementById('upload-script-btn'), overwriteCheckbox = document.getElementById('overwrite-main-checkbox');
     if (uploadBtn && fileUploader) { uploadBtn.addEventListener('click', () => fileUploader.click()); fileUploader.addEventListener('change', async (event) => { const file = event.target.files[0]; if (!file) return; try { const result = await ScriptManager.handleFileUpload(file, overwriteCheckbox.checked); alert(`腳本 "${result.name}" 已透過舊版方式上傳。`); currentFileHandle = null; updateEditorTitle(); editor.setValue(ScriptManager.getScriptContent(result.name)); } catch (error) { alert(`錯誤: ${error}`); } }); }
 
     // --- Final Initialization ---
     initEditor();
+    
+    // Initial Render (Moved after initEditor)
+    renderScriptList();
+    
     window.ScriptManager = ScriptManager;
     console.log("Script Editor V2.3 (Syntax Highlighting) Initialized");
 });
