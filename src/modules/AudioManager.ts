@@ -124,6 +124,16 @@ class AudioManager implements IGameModule {
             console.warn('No available audio elements in the SFX pool.');
         }
     }
+    getCurrentBGM(): { src: string; volume: number; loop: boolean; } | null {
+        if (!this.bgmAudio || this.bgmAudio.paused || !this.bgmAudio.src) {
+            return null;
+        }
+        return {
+            src: this.bgmAudio.src,
+            volume: this.bgmAudio.volume / (this.masterVolume || 1), // Normalize volume
+            loop: this.bgmAudio.loop
+        };
+    }
 }
 
 export default AudioManager;

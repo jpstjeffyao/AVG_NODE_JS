@@ -349,4 +349,19 @@
     *   **`ScriptEngine` 解析**: 更新 `BG` 指令的解析邏輯，讀取第三個參數並呼叫 `AssetManager.shakeBG`。
 
 ## 🐛 錯誤修復 (GameKernel & ScriptEngine)
-... (Previous logs)
+
+# 2026-02-03 23:25:00
+### Changes
+- Implemented **Game Save System**.
+- **[MODIFY] StateManager.ts**: Added `SaveData` interface, `saveGame`, `loadGame`, and `listSaves` methods for LocalStorage persistence. Added `getSnapshot` for ensuring valid data capture.
+- **[MODIFY] ScriptEngine.ts**: Added `currentScriptName` tracking and `restoreState` method to resume script execution from a specific line.
+- **[MODIFY] GameKernel.ts**: Added `saveGame` and `loadGame` wrapper methods to coordinate data persistence across modules. Updated `loadScript` to accept script name.
+- **[MODIFY] UIModule.ts**: Added `showSaveLoadMenu` for save slot selection UI. Added in-game system buttons ("Save", "Load").
+- **[MODIFY] AssetManager.ts**: Added `getCurrentBG` and `currentBG` tracking to restore background.
+- **[MODIFY] AudioManager.ts**: Added `getCurrentBGM` to expose current music state.
+- **[MODIFY] CharacterModule.ts**: Added `getCurrentState` and `restoreState` to track and restore character sprites.
+- **[MODIFY] index.ts**: Updated `bootstrap` to pass the correct script name to `ScriptEngine` when loading scripts, resolving an "Unknown script" error during load.
+- **[NEW] implementation_plan.md** and **walkthrough.md**: Created planning and verification documents for the save system.
+
+### Reason
+- To support saving and loading game progress, a critical feature for AVG games. The `index.ts` fix ensures that the saved game data contains the correct script identifier for restoration.

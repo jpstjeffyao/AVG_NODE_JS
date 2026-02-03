@@ -101,6 +101,7 @@ export class CharacterModule implements IGameModule {
                 const img = document.createElement('img');
                 img.src = imgAsset.src;
                 img.dataset.name = name; // 將角色名稱存在 dataset 中
+                img.dataset.characterId = characterId; // Store resource ID
                 img.style.maxHeight = '90%';
                 img.style.maxWidth = '100%';
                 img.style.objectFit = 'contain';
@@ -108,12 +109,35 @@ export class CharacterModule implements IGameModule {
 
                 // 更新 activeCharacters map
                 this.activeCharacters.set(position, img);
-                
+
                 // 當設置新的立繪時，重設為全亮狀態
                 this.setSpriteHighlight(position, 1.0);
             } else {
                 console.error(`[CharacterModule] 無法載入立繪資源: ${characterId}。`);
             }
+        }
+    }
+
+    /**
+     * Get current character state for saving
+     */
+    public getCurrentState(): [string, string][] {
+        const state: [string, string][] = [];
+        this.activeCharacters.forEach((img, pos) => {
+            if (img.dataset.characterId) {
+                state.push([pos, img.dataset.characterId]);
+            }
+        });
+        return state;
+    }
+
+    /**
+     * Restore characters from saved state
+     */
+    public async restoreState(entries: [string, string][]): Promise<void> {
+        this.clear();
+        for (const [pos, charId] of entries) {
+            await this.show(charId, pos as CharacterPosition);
         }
     }
 

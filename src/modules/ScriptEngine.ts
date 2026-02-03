@@ -15,6 +15,7 @@ export class ScriptEngine implements IGameModule {
     private isWaitingForChoice: boolean = false;
     private isWaitingForAsset: boolean = false;
     private isWaitingForVideo: boolean = false;
+    public currentScriptName: string = ""; // Track current script name
 
     /**
      * 紀錄立繪位置與角色ID的對應關係。
@@ -41,8 +42,9 @@ export class ScriptEngine implements IGameModule {
     /**
      * 載入腳本行並掃描標籤
      */
-    loadScript(lines: string[]): void {
+    loadScript(lines: string[], scriptName: string = "Unknown"): void {
         this.scriptLines = lines;
+        this.currentScriptName = scriptName; // Update script name
         this.scanLabels();
         this.currentLineIndex = 0; // 重設行號索引
     }
@@ -61,9 +63,6 @@ export class ScriptEngine implements IGameModule {
         });
     }
 
-    /**
-     * 執行下一行指令
-     */
     /**
      * 執行下一行指令
      * 改為非同步方法，等待當前指令執行完畢
@@ -108,9 +107,6 @@ export class ScriptEngine implements IGameModule {
      */
     private async executeLine(line: string): Promise<void> {
         if (line.trim().startsWith('#')) return;
-
-        // 移除舊的方括號格式音訊指令解析
-        // 現在統一使用管道符號格式 (例如: BGM_PLAY|filename|volume|loop)
 
         const parts = line.split('|');
         const command = parts[0].trim().toUpperCase(); // 指令改為不分大小寫
@@ -232,7 +228,7 @@ export class ScriptEngine implements IGameModule {
                 if (nextScriptContent) {
                     const nextLines = nextScriptContent.split('\n');
                     console.log(`[ScriptEngine] Switching to script: ${nextScriptName}`);
-                    this.loadScript(nextLines);
+                    this.loadScript(nextLines, nextScriptName); // Pass script name
                     // loadScript resets currentLineIndex to 0, so the loop will continue from the start of the new script
                 } else {
                     console.error(`[ScriptEngine] Script not found in LocalStorage: ${nextScriptName}`);
@@ -347,5 +343,60 @@ export class ScriptEngine implements IGameModule {
 
     shutdown(): void {
         // Shutdown logic here if needed
+    }
+
+    // --- State Restoration ---
+
+    public get currentScriptInfo() {
+        return {
+            name: this.currentScriptName,
+            line: this.currentLineIndex
+        };
+    }
+
+    /**
+     * Restore game state from save data
+     */
+    async restoreState(data: import('../core/StateManager').SaveData): Promise<void> {
+        // 1. Load Script
+        const scriptContent = localStorage.getItem(`scripteditor_script_${data.scriptName}`);
+        if (!scriptContent) {
+            console.error(`[ScriptEngine] Restore failed: Script ${data.scriptName} not found.`);
+            return;
+        }
+        console.log(`[ScriptEngine] Restoring script: ${data.scriptName} at line ${data.lineIndex}`);
+        this.loadScript(scriptContent.split('\n'), data.scriptName);
+        this.currentLineIndex = data.lineIndex;
+
+        // 2. Restore Variables (Handled by GameKernel calling StateManager, but here for reference)
+
+        // 3. Restore Background
+        if (data.background) {
+            await this.kernel.assetManager.setBG(data.background);
+        }
+
+        // 4. Restore Characters
+        if (data.characters) {
+            await this.kernel.characterModule.restoreState(data.characters);
+        }
+
+        // 5. Restore BGM
+        if (data.bgm) {
+            // Check if same BGM is playing? Maybe not needed, just restart it.
+            this.kernel.audio.stopBGM(); // Stop current
+
+            // Need to reconstruct full path? Or BGM stores full path in 'src'?
+            // AudioManger.getCurrentBGM() returns { src: string ... } where src is full URL usually.
+            // But we playBGM using filename.
+            // Let's see playBGM implementation. It takes srcOrElement.
+            // If src is full URL, it works.
+            this.kernel.audio.playBGM(data.bgm.src, data.bgm.volume, data.bgm.loop);
+        } else {
+            this.kernel.audio.stopBGM();
+        }
+
+        // 6. Resume
+        this.stateManager.setState(GameState.STATE_PLAYING);
+        this.next();
     }
 }

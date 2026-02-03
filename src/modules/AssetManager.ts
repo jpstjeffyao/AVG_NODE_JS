@@ -7,7 +7,7 @@ export class AssetManager implements IGameModule {
     public moduleName: string = "AssetManager";
     private cache: Map<string, HTMLImageElement | HTMLAudioElement> = new Map();
     private bgLayer!: HTMLDivElement;
-    
+
     // REMOVED: private spriteLayer!: HTMLDivElement;
     // REMOVED: private spriteSlots: { [key: string]: HTMLDivElement } = {};
 
@@ -22,7 +22,7 @@ export class AssetManager implements IGameModule {
         'sound': '/sound/',
     };
 
-    constructor() {}
+    constructor() { }
 
     /**
      * 批次預載入資產
@@ -79,7 +79,7 @@ export class AssetManager implements IGameModule {
      */
     initialize(): void {
         const root = document.getElementById('game-root') || document.getElementById('app') || document.body;
-    
+
         // 建立背景層：最底層，用於顯示場景圖片
         this.bgLayer = document.createElement('div');
         this.bgLayer.id = 'bg-layer';
@@ -166,6 +166,8 @@ export class AssetManager implements IGameModule {
         window.dispatchEvent(event);
     }
 
+    private currentBG: string | null = null; // Track current BG
+
     /**
      * 設定背景影像：從快取取得圖片並套用到背景層。
      * 改為非同步方法，確保資源載入後才執行顯示。
@@ -178,8 +180,16 @@ export class AssetManager implements IGameModule {
             const img = this.cache.get(key);
             if (img) {
                 this.bgLayer.style.backgroundImage = `url(${img.src})`;
+                this.currentBG = key; // Save current BG key
             }
         }
+    }
+
+    /**
+     * Get current background key
+     */
+    public getCurrentBG(): string | null {
+        return this.currentBG;
     }
 
     /**
@@ -191,16 +201,16 @@ export class AssetManager implements IGameModule {
 
         // 將 0.0 ~ 1.0 映射為 0px ~ 20px (可調整)
         const pixelIntensity = Math.floor(intensity * 40) + "px";
-        
+
         // 設定 CSS 變數
         this.bgLayer.style.setProperty('--shake-intensity', pixelIntensity);
-        
+
         // 移除 class 以便重新觸發動畫 (如果連續呼叫)
         this.bgLayer.classList.remove('shaking');
-        
+
         // 強制 reflow
         void this.bgLayer.offsetWidth;
-        
+
         // 加入 class 觸發動畫
         this.bgLayer.classList.add('shaking');
 
@@ -220,7 +230,7 @@ export class AssetManager implements IGameModule {
      * @param position 放置位置
      * @param imgKey 圖像識別碼 (用於路徑檢索)
      */
-    update(): void {}
+    update(): void { }
 
     shutdown(): void {
         if (this.bgLayer) this.bgLayer.remove();

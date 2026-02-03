@@ -19,7 +19,7 @@ export class GameKernel {
         // 1. 核心管理器
         this.assetManager = new AssetManager();
         this.stateManager = new StateManager();
-        
+
         // 2. 功能模組
         this.characterModule = new CharacterModule(this.assetManager);
         this.audio = new AudioManager();
@@ -111,10 +111,10 @@ export class GameKernel {
         }
     }
 
-    public loadScript(script: string[]): void {
+    public loadScript(script: string[], scriptName: string = "Unknown"): void {
         const scriptEngine = this.scriptEngine;
         if (scriptEngine) {
-            scriptEngine.loadScript(script);
+            scriptEngine.loadScript(script, scriptName);
         }
     }
 
@@ -124,5 +124,49 @@ export class GameKernel {
     public async start(): Promise<void> {
         await this.startGame();
     }
-}
 
+    /**
+     * Save current game state to a slot
+     */
+    public saveGame(slot: number): void {
+        if (!this.scriptEngine || !this.stateManager) return;
+
+        const scriptInfo = this.scriptEngine.currentScriptInfo;
+        const stateSnapshot = this.stateManager.getSnapshot();
+        const bg = this.assetManager.getCurrentBG();
+        const chars = this.characterModule.getCurrentState();
+        const bgm = this.audio.getCurrentBGM();
+
+        const saveData: import('./StateManager').SaveData = {
+            timestamp: Date.now(),
+            scriptName: scriptInfo.name,
+            lineIndex: scriptInfo.line,
+            variables: stateSnapshot.data,
+            background: bg,
+            characters: chars,
+            bgm: bgm
+        };
+
+        this.stateManager.saveGame(slot, saveData);
+        alert(`Game saved to slot ${slot}!`);
+    }
+
+    /**
+     * Load game from a slot
+     */
+    public async loadGame(slot: number): Promise<void> {
+        const data = this.stateManager.loadGame(slot);
+        if (!data) {
+            alert(`No save data found in slot ${slot}.`);
+            return;
+        }
+
+        // Restore StateManager variables
+        this.stateManager.restoreVariables(data.variables);
+
+        // Restore Engine State (Visuals, Audio, Script execution)
+        await this.scriptEngine.restoreState(data);
+
+        alert(`Game loaded from slot ${slot}!`);
+    }
+}

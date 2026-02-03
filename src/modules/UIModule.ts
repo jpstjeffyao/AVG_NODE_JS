@@ -45,10 +45,10 @@ export class UIModule implements IGameModule {
     if (event.code === 'Space') {
       const target = event.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' ||
-                     target.tagName === 'TEXTAREA' ||
-                     target.isContentEditable ||
-                     target.classList.contains('script-editor');
-      
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.classList.contains('script-editor');
+
       if (!isInput) {
         event.preventDefault(); // 防止頁面滾動
         this.kernel?.onUserClick();
@@ -76,16 +76,16 @@ export class UIModule implements IGameModule {
     const btnSettings = document.getElementById("btn-settings");
 
     if (btnNewGame) btnNewGame.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.onNewGameClick();
+      e.stopPropagation();
+      this.onNewGameClick();
     });
     if (btnLoadGame) btnLoadGame.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.onLoadGameClick();
+      e.stopPropagation();
+      this.onLoadGameClick();
     });
     if (btnSettings) btnSettings.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.onSettingsClick();
+      e.stopPropagation();
+      this.onSettingsClick();
     });
 
     // 設定初始視覺狀態：進入頁面時先顯示主選單，對話框預設隱藏
@@ -123,7 +123,7 @@ export class UIModule implements IGameModule {
             bgLayer.style.display = 'block';
             bgLayer.style.opacity = '1';
           }
-          
+
           // NEW: Clear character sprites when returning to title screen
           if (this.kernel.characterModule) {
             console.log("[UIModule] Calling characterModule.clear()."); // NEW LOG
@@ -131,7 +131,7 @@ export class UIModule implements IGameModule {
           }
 
           this.showMenu();
-          
+
           // 移除淡出遮罩（若存在）
           if (this._fadeOverlay) {
             this._fadeOverlay.style.display = 'none';
@@ -179,6 +179,7 @@ export class UIModule implements IGameModule {
     console.log("[UIModule] showMenu() called. Displaying #menu-screen.");
     if (this._menuScreen) {
       this._menuScreen.style.display = "flex";
+      this.hideSystemButtons(); // Hide system buttons (Save/Load) on title screen
       // NEW LOG: Confirming style application
       console.log(`[UIModule] #menu-screen display set to: ${this._menuScreen.style.display}`);
     }
@@ -207,6 +208,7 @@ export class UIModule implements IGameModule {
   public showDialog(): void {
     if (this._dialogContainer) {
       this._dialogContainer.style.display = "flex";
+      this.showSystemButtons(); // Show system buttons in-game
     }
   }
 
@@ -223,8 +225,8 @@ export class UIModule implements IGameModule {
   /**
    * 點擊「開始遊戲」
    */
-    private onNewGameClick(): void {
-        this.hideMenu();
+  private onNewGameClick(): void {
+    this.hideMenu();
     this.showDialog();
 
     // 透過暴露在 window 的 kernel 啟動遊戲
@@ -238,8 +240,7 @@ export class UIModule implements IGameModule {
    * 點擊「繼續遊戲」
    */
   private onLoadGameClick(): void {
-    console.log("UIModule: Load Game Clicked - Not Implemented");
-    alert("繼續遊戲功能尚未實作！");
+    this.showSaveLoadMenu('load');
   }
 
   /**
@@ -294,147 +295,147 @@ export class UIModule implements IGameModule {
   /**
    * 立即完成打字效果（用於玩家在文字渲染中途點擊畫面時跳過動畫）
    */
-      public completeTyping(): void {
-          if (!this._isTyping) return;
-  
-          // 停止計時器
-          if (this._typingTimer !== null) {
-              window.clearInterval(this._typingTimer);
-              this._typingTimer = null;
-          }
-  
-          // 補完所有文字內容
-          if (this._container) {
-              const contentBox = this._container.querySelector("#content");
-              if (contentBox) {
-                  contentBox.textContent = this._fullText;
-              }
-          }
-  
-          this._isTyping = false;
+  public completeTyping(): void {
+    if (!this._isTyping) return;
+
+    // 停止計時器
+    if (this._typingTimer !== null) {
+      window.clearInterval(this._typingTimer);
+      this._typingTimer = null;
+    }
+
+    // 補完所有文字內容
+    if (this._container) {
+      const contentBox = this._container.querySelector("#content");
+      if (contentBox) {
+        contentBox.textContent = this._fullText;
       }
-  
-      /**
-       * 播放全螢幕影片
-       * @param videoPath 影片檔案路徑
-       * @returns Promise 當影片播放結束時 resolve
-       */
-          public playVideo(videoPath: string, volume: number = 1.0): Promise<void> {
-              return new Promise((resolve) => {
-                  const videoElement = document.createElement('video');
-                  videoElement.src = videoPath;
-                  videoElement.autoplay = true;
-                  videoElement.controls = false; // 不顯示控制器，讓影片自動播放並佔據全螢幕
-                  videoElement.preload = 'auto'; // 預加載影片
-                  videoElement.volume = Math.max(0, Math.min(1, volume)); // Set volume, clamped between 0 and 1
-      
-                  // 設定全螢幕樣式，並確保在所有內容之上
-                  videoElement.style.position = 'fixed';
-                  videoElement.style.top = '0';
-                  videoElement.style.left = '0';
-                  videoElement.style.width = '100%';
-                  videoElement.style.height = '100%';
-                  videoElement.style.zIndex = '10001'; // 比 fadeOverlay (z-index: 10000) 更高
-                  videoElement.style.objectFit = 'cover'; // 確保影片填滿整個螢幕，可能會裁剪
-                  videoElement.style.backgroundColor = 'black'; // 影片載入前或結束後的背景
-      
-                  let skipHandled = false; // Flag to prevent double resolution
-      
-                  const cleanup = () => {
-                      if (videoElement.parentNode) {
-                          videoElement.parentNode.removeChild(videoElement);
-                      }
-                      document.removeEventListener('click', skipVideo);
-                      document.removeEventListener('keydown', skipVideo);
-                  };
-      
-                  const doResolve = () => {
-                      if (!skipHandled) {
-                          skipHandled = true;
-                          cleanup();
-                          resolve();
-                      }
-                  };
-      
-                  // Event listener for natural end of video
-                  videoElement.addEventListener('ended', doResolve);
-      
-                  // Event listener for skip by click/keydown
-                  const skipVideo = (event: Event) => {
-                      // Prevent default behavior for keydown (e.g., space scrolling)
-                      if (event instanceof KeyboardEvent && event.code === 'Space') {
-                          event.preventDefault();
-                      }
-                      // Only skip if not already handled by natural end
-                      if (!skipHandled) {
-                          console.log("[UIModule] Video skipped by user interaction.");
-                          videoElement.pause(); // Pause if playing
-                          doResolve();
-                      }
-                  };
-      
-                  document.addEventListener('click', skipVideo);
-                  document.addEventListener('keydown', skipVideo);
-      
-                  // 監聽影片載入失敗事件
-                  videoElement.addEventListener('error', (e) => {
-                      console.error(`Error playing video ${videoPath}:`, e);
-                      doResolve(); // Resolve even on error to unblock script
-                  });
-      
-                  document.body.appendChild(videoElement);
-              });
-          }  
-        /**
-         * 在畫面中央顯示分支選項按鈕
-         * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])
-         */
-        showChoices(choices: string[]): void {
-          // 確保 UI 已初始化
-          if (!this._container) return;
-      
-          // NEW: Hide the entire dialog container when showing choices
-          this.hideDialog(); 
-      
-          // 動態建立存放按鈕的容器，並置中顯示
-          const choiceContainer = document.createElement("div");
-          choiceContainer.id = "choice-container";
-          choiceContainer.style.position = "absolute";
-          choiceContainer.style.top = "50%";
-          choiceContainer.style.left = "50%";
-          choiceContainer.style.transform = "translate(-50%, -50%)";
-          choiceContainer.style.display = "flex";
-          choiceContainer.style.flexDirection = "column";
-          choiceContainer.style.gap = "10px";
-          choiceContainer.style.zIndex = "1000";
-      
-          choices.forEach((label) => {
-            const button = document.createElement("button");
-            button.innerText = label;
-            button.className = "choice-button";
-            button.style.padding = "10px 20px";
-            button.style.fontSize = "18px";
-            button.style.cursor = "pointer";
-      
-            button.addEventListener("click", (e) => {
-              // 防止事件冒泡到全螢幕點擊
-              e.stopPropagation();
-      
-              // 觸發自定義事件，傳遞選擇的標籤
-              const event = new CustomEvent("choiceMade", { detail: label });
-              window.dispatchEvent(event);
-      
-              // 移除所有選項按鈕
-              choiceContainer.remove();
-            });
-      
-            choiceContainer.appendChild(button);
-          });
-      
-          // 將選項容器加入到 game-root (確保在最上層且不受 avg-ui 隱藏影響)
-          const gameRoot = document.getElementById("game-root") || document.body;
-          gameRoot.appendChild(choiceContainer);
+    }
+
+    this._isTyping = false;
+  }
+
+  /**
+   * 播放全螢幕影片
+   * @param videoPath 影片檔案路徑
+   * @returns Promise 當影片播放結束時 resolve
+   */
+  public playVideo(videoPath: string, volume: number = 1.0): Promise<void> {
+    return new Promise((resolve) => {
+      const videoElement = document.createElement('video');
+      videoElement.src = videoPath;
+      videoElement.autoplay = true;
+      videoElement.controls = false; // 不顯示控制器，讓影片自動播放並佔據全螢幕
+      videoElement.preload = 'auto'; // 預加載影片
+      videoElement.volume = Math.max(0, Math.min(1, volume)); // Set volume, clamped between 0 and 1
+
+      // 設定全螢幕樣式，並確保在所有內容之上
+      videoElement.style.position = 'fixed';
+      videoElement.style.top = '0';
+      videoElement.style.left = '0';
+      videoElement.style.width = '100%';
+      videoElement.style.height = '100%';
+      videoElement.style.zIndex = '10001'; // 比 fadeOverlay (z-index: 10000) 更高
+      videoElement.style.objectFit = 'cover'; // 確保影片填滿整個螢幕，可能會裁剪
+      videoElement.style.backgroundColor = 'black'; // 影片載入前或結束後的背景
+
+      let skipHandled = false; // Flag to prevent double resolution
+
+      const cleanup = () => {
+        if (videoElement.parentNode) {
+          videoElement.parentNode.removeChild(videoElement);
         }
+        document.removeEventListener('click', skipVideo);
+        document.removeEventListener('keydown', skipVideo);
+      };
+
+      const doResolve = () => {
+        if (!skipHandled) {
+          skipHandled = true;
+          cleanup();
+          resolve();
+        }
+      };
+
+      // Event listener for natural end of video
+      videoElement.addEventListener('ended', doResolve);
+
+      // Event listener for skip by click/keydown
+      const skipVideo = (event: Event) => {
+        // Prevent default behavior for keydown (e.g., space scrolling)
+        if (event instanceof KeyboardEvent && event.code === 'Space') {
+          event.preventDefault();
+        }
+        // Only skip if not already handled by natural end
+        if (!skipHandled) {
+          console.log("[UIModule] Video skipped by user interaction.");
+          videoElement.pause(); // Pause if playing
+          doResolve();
+        }
+      };
+
+      document.addEventListener('click', skipVideo);
+      document.addEventListener('keydown', skipVideo);
+
+      // 監聽影片載入失敗事件
+      videoElement.addEventListener('error', (e) => {
+        console.error(`Error playing video ${videoPath}:`, e);
+        doResolve(); // Resolve even on error to unblock script
+      });
+
+      document.body.appendChild(videoElement);
+    });
+  }
+  /**
+   * 在畫面中央顯示分支選項按鈕
+   * @param choices 選項文字陣列 (例如 ['走左邊', '走右邊'])
+   */
+  showChoices(choices: string[]): void {
+    // 確保 UI 已初始化
+    if (!this._container) return;
+
+    // NEW: Hide the entire dialog container when showing choices
+    this.hideDialog();
+
+    // 動態建立存放按鈕的容器，並置中顯示
+    const choiceContainer = document.createElement("div");
+    choiceContainer.id = "choice-container";
+    choiceContainer.style.position = "absolute";
+    choiceContainer.style.top = "50%";
+    choiceContainer.style.left = "50%";
+    choiceContainer.style.transform = "translate(-50%, -50%)";
+    choiceContainer.style.display = "flex";
+    choiceContainer.style.flexDirection = "column";
+    choiceContainer.style.gap = "10px";
+    choiceContainer.style.zIndex = "1000";
+
+    choices.forEach((label) => {
+      const button = document.createElement("button");
+      button.innerText = label;
+      button.className = "choice-button";
+      button.style.padding = "10px 20px";
+      button.style.fontSize = "18px";
+      button.style.cursor = "pointer";
+
+      button.addEventListener("click", (e) => {
+        // 防止事件冒泡到全螢幕點擊
+        e.stopPropagation();
+
+        // 觸發自定義事件，傳遞選擇的標籤
+        const event = new CustomEvent("choiceMade", { detail: label });
+        window.dispatchEvent(event);
+
+        // 移除所有選項按鈕
+        choiceContainer.remove();
+      });
+
+      choiceContainer.appendChild(button);
+    });
+
+    // 將選項容器加入到 game-root (確保在最上層且不受 avg-ui 隱藏影響)
+    const gameRoot = document.getElementById("game-root") || document.body;
+    gameRoot.appendChild(choiceContainer);
+  }
   showOptions(choices: string[]): Promise<number> {
     // 預留：未實作
     return Promise.resolve(0);
@@ -474,8 +475,8 @@ export class UIModule implements IGameModule {
     }
   }
 
-  update(): void {}
-  shutdown(): void {}
+  update(): void { }
+  shutdown(): void { }
 
   /**
    * 執行畫面淡出效果
@@ -507,7 +508,7 @@ export class UIModule implements IGameModule {
       const animate = (currentTime: number) => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         if (this._fadeOverlay) {
           this._fadeOverlay.style.opacity = progress.toString();
         }
@@ -529,6 +530,152 @@ export class UIModule implements IGameModule {
   dispose(): void {
     document.removeEventListener("click", this.handleDocumentClick);
     document.removeEventListener("keydown", this.handleDocumentSpaceKey);
+  }
+
+  /**
+   * Show Save/Load Menu
+   * @param mode 'save' or 'load'
+   */
+  public showSaveLoadMenu(mode: 'save' | 'load'): void {
+    // Create or get menu container
+    let menu = document.getElementById('save-load-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'save-load-menu';
+      menu.style.position = 'fixed';
+      menu.style.top = '0';
+      menu.style.left = '0';
+      menu.style.width = '100%';
+      menu.style.height = '100%';
+      menu.style.backgroundColor = 'rgba(0,0,0,0.8)';
+      menu.style.zIndex = '20000';
+      menu.style.display = 'flex';
+      menu.style.flexDirection = 'column';
+      menu.style.alignItems = 'center';
+      menu.style.justifyContent = 'center';
+      menu.style.color = 'white';
+      document.body.appendChild(menu);
+    }
+
+    menu.innerHTML = ''; // Clear content
+    menu.style.display = 'flex';
+
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = mode === 'save' ? '儲存遊戲' : '載入遊戲';
+    title.style.marginBottom = '20px';
+    menu.appendChild(title);
+
+    // Close Button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '關閉';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '20px';
+    closeBtn.style.right = '20px';
+    closeBtn.style.padding = '10px 20px';
+    closeBtn.onclick = () => {
+      menu!.style.display = 'none';
+    };
+    menu.appendChild(closeBtn);
+
+    // Slot List Container
+    const list = document.createElement('div');
+    list.style.display = 'flex';
+    list.style.flexDirection = 'column';
+    list.style.gap = '10px';
+    list.style.maxHeight = '70%';
+    list.style.overflowY = 'auto';
+    list.style.width = '60%';
+    menu.appendChild(list);
+
+    // Get saved slots info
+    const saves = this.kernel.stateManager.listSaves();
+    const savesMap = new Map(saves.map(s => [s.slot, s]));
+
+    // Render Slots 1-10
+    for (let i = 1; i <= 10; i++) {
+      const slotInfo = savesMap.get(i);
+      const item = document.createElement('div');
+      item.style.border = '1px solid #444';
+      item.style.padding = '15px';
+      item.style.backgroundColor = '#222';
+      item.style.cursor = 'pointer';
+      item.style.display = 'flex';
+      item.style.justifyContent = 'space-between';
+      item.style.alignItems = 'center';
+
+      const infoText = slotInfo ? slotInfo.summary : '---- 空白存檔 ----';
+
+      item.innerHTML = `
+                <span style="font-weight:bold; margin-right: 15px;">SLOT ${i}</span>
+                <span>${infoText}</span>
+            `;
+
+      item.onclick = async () => {
+        if (mode === 'save') {
+          if (confirm(`確定要儲存到 SLOT ${i} 嗎？`)) {
+            this.kernel.saveGame(i);
+            this.showSaveLoadMenu('save'); // Refresh list
+          }
+        } else {
+          if (slotInfo) {
+            if (confirm(`確定要讀取 SLOT ${i} 嗎？`)) {
+              await this.kernel.loadGame(i);
+              menu!.style.display = 'none'; // Close menu
+              this.hideMenu(); // Hide title screen if on title
+            }
+          }
+        }
+      };
+
+      list.appendChild(item);
+    }
+  }
+
+  /**
+   * Ensure in-game system buttons exist
+   */
+  public showSystemButtons(): void {
+    let container = document.getElementById('system-btn-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'system-btn-container';
+      container.style.position = 'fixed';
+      container.style.top = '10px';
+      container.style.right = '10px';
+      container.style.zIndex = '10002';
+      container.style.display = 'flex';
+      container.style.gap = '5px';
+      document.body.appendChild(container);
+
+      const createBtn = (text: string, onClick: () => void) => {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.style.padding = '5px 10px';
+        btn.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        btn.style.color = 'white';
+        btn.style.border = '1px solid #666';
+        btn.style.cursor = 'pointer';
+        btn.onclick = (e) => {
+          e.stopPropagation(); // Prevent advancing script
+          onClick();
+        };
+        container!.appendChild(btn);
+      };
+
+      createBtn('Save', () => this.showSaveLoadMenu('save'));
+      createBtn('Load', () => this.showSaveLoadMenu('load'));
+      createBtn('Auto', () => console.log('Auto skip toggle')); // Placeholder
+    }
+    container.style.display = 'flex';
+  }
+
+  /**
+   * Hide system buttons (e.g. for title screen)
+   */
+  public hideSystemButtons(): void {
+    const container = document.getElementById('system-btn-container');
+    if (container) container.style.display = 'none';
   }
 }
 
