@@ -1,3 +1,118 @@
+# DefineDocument 系統定義文件全面更新 (2026-02-03 22:55)
+
+## 📚 文件系統重構 (Documentation System Overhaul)
+
+### 現有文件更新 (Existing Documents Update)
+*   **變更範圍**: 更新 DefineDocument 目錄中的 5 個現有文件
+*   **更新內容**:
+    *   **00_Architecture.md**: 完全重寫，移除所有 Unity/C# 架構描述，改為詳細的 TypeScript/Node.js 架構說明
+        *   新增技術棧說明（TypeScript, Vite, Jest）
+        *   更新專案目錄結構，反映實際的 `src/core/`, `src/modules/`, `assets/` 結構
+        *   重新定義模組架構與職責劃分
+        *   補充資料流向圖和與 Unity 版本的差異對比
+    *   **01_MainFlow_Entry.md**: 重寫主流程文件，移除 Unity Scene 系統
+        *   詳細說明 Web 應用的 `bootstrap()` 啟動流程
+        *   補充 LocalStorage 主腳本載入機制
+        *   更新遊戲狀態轉換流程圖
+        *   說明編輯器與主視窗的 `postMessage` 通訊機制
+    *   **02_UI_System.md**: 大幅擴展 UI 系統文件
+        *   保留原有的空白鍵推進功能說明
+        *   新增主選單系統（MENU）的完整說明
+        *   新增打字機效果的實作細節
+        *   新增全螢幕影片播放（MV）功能說明
+        *   新增畫面淡出效果（fadeOut）說明
+        *   新增選項系統的 UI 實作細節
+    *   **04_assets.md**: 擴展資源管理文件
+        *   補充完整的資源目錄結構說明
+        *   詳細說明 BG 指令（包含震動效果）
+        *   補充 CHARA 指令的資源管理（由 CharacterModule 負責）
+        *   新增資源快取機制說明
+        *   補充錯誤處理和效能優化建議
+    *   **05_choices.md**: 擴展選項系統文件
+        *   保留原有的腳本範例
+        *   新增完整的技術實作細節
+        *   補充事件處理機制（事件委派、事件清理）
+        *   新增標籤與跳轉系統的詳細說明
+        *   補充進階應用範例和最佳實踐
+
+### 新增系統文件 (New System Documents)
+*   **新增檔案**: 建立 5 個新的系統定義文件，填補關鍵系統的文件空白
+*   **新增內容**:
+    *   **03_ScriptEngine.md**: 腳本引擎完整文件（14 個章節）
+        *   完整的指令清單（對話、場景、音訊、邏輯、互動）
+        *   腳本載入與執行流程說明
+        *   標籤掃描與跳轉系統詳解
+        *   變數系統與條件判斷說明
+        *   非同步指令處理機制
+        *   與其他模組的整合方式
+        *   錯誤處理和除錯建議
+    *   **06_AudioManager.md**: 音訊管理系統文件（12 個章節）
+        *   BGM 控制指令詳解（播放、停止、淡入淡出）
+        *   SFX 多重播放機制說明
+        *   音訊路徑自動補全規範
+        *   音量控制與推薦值
+        *   ScriptEngine 整合方式
+        *   支援的檔案格式說明
+        *   效能優化建議
+    *   **07_CharacterModule.md**: 角色立繪系統文件（14 個章節）
+        *   三位置立繪系統（left, center, right）
+        *   CHARA 指令完整說明（SHOW, HIDE, CLEAR）
+        *   資源命名規範
+        *   說話者高亮邏輯實作
+        *   與 AssetManager 的整合
+        *   動畫效果說明
+        *   完整場景範例
+    *   **08_StateManager.md**: 狀態管理系統文件（12 個章節）
+        *   遊戲狀態（GameState）詳細定義
+        *   狀態轉換流程圖
+        *   變數系統實作（SET/GET）
+        *   旗標系統說明
+        *   存檔/讀檔機制（未完整實作）
+        *   變數應用範例（好感度、章節進度）
+        *   除錯工具和最佳實踐
+    *   **09_ScriptEditor.md**: 腳本編輯器系統文件（13 個章節）
+        *   多腳本管理功能（建立、刪除、重命名）
+        *   主腳本標記系統
+        *   LocalStorage 資料結構詳解
+        *   腳本列表（A-Z 排序、搜尋過濾）
+        *   檔案導入/導出功能
+        *   postMessage 跨視窗通訊機制
+        *   自動儲存功能說明
+
+### 文件特色與設計理念
+*   **繁體中文撰寫**: 所有文件使用繁體中文，方便本地化閱讀
+*   **一致性**: 所有文件遵循統一的格式和結構
+*   **完整性**: 每個文件包含系統概述、功能說明、實作細節、範例程式碼
+*   **實用性**: 提供豐富的程式碼範例和應用情境
+*   **可維護性**: 使用 Markdown 檔案連結相互引用，方便查閱
+*   **擴展性**: 每個文件都包含未來擴展的建議
+
+### 影響檔案列表
+*   **更新檔案** (5 個):
+    *   `DefineDocument/00_Architecture.md`
+    *   `DefineDocument/01_MainFlow_Entry.md`
+    *   `DefineDocument/02_UI_System.md`
+    *   `DefineDocument/04_assets.md`
+    *   `DefineDocument/05_choices.md`
+*   **新增檔案** (5 個):
+    *   `DefineDocument/03_ScriptEngine.md`
+    *   `DefineDocument/06_AudioManager.md`
+    *   `DefineDocument/07_CharacterModule.md`
+    *   `DefineDocument/08_StateManager.md`
+    *   `DefineDocument/09_ScriptEditor.md`
+
+### 文件統計
+*   **總計**: 10 個定義文件（全部涵蓋核心系統）
+*   **更新檔案行數**: 約 2,000+ 行 Markdown
+*   **新增檔案行數**: 約 3,500+ 行 Markdown
+*   **程式碼範例**: 100+ 個實用範例
+*   **章節總數**: 120+ 個章節
+
+### 參考與一致性
+*   **與程式碼同步**: 所有文件內容已與當前的 TypeScript 實作驗證一致
+*   **與其他文件互補**: 與 `scriptFormat.md` 和 `ReadMe.md` 保持一致性
+*   **交叉引用**: 文件之間通過 Markdown 連結相互引用，形成完整的文件系統
+
 # 腳本引擎指令優化 (2026-02-02 22:34)
 
 ## 🔄 指令優化 (Command Optimization)
