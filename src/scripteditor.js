@@ -6,16 +6,16 @@
  */
 
 // --- Autocomplete & Highlighting Data ---
-const mainCommandRegex = /^(SAY|BG|CHARA|CHOICE|LABEL|GOTO|SPRITE|SPRITE_CLR|MV)/;
+const mainCommandRegex = /^(SAY|BG|CHARA|CHOICE|LABEL|GOTO|SPRITE|SPRITE_CLR|MV|BGM_PLAY|BGM_STOP|BGM_FADE_OUT|BGM_FADE_IN|SFX_PLAY|SET|CALL_SCRIPT|IF)/;
 const audioCommandRegex = /^(\[)(BGM_PLAY|BGM_STOP|BGM_FADE_OUT|BGM_FADE_IN|SFX_PLAY)/;
 const charAssets = ["Captain_angry", "Captain_happy", "Captain_neutral", "Captain_sad", "elizabeth_happy_L", "elizabeth_happy_R", "elizabeth_neutral_L", "elizabeth_neutral_R", "elizabeth_sad_L", "elizabeth_sad_R", "elizabeth_surprised_L", "elizabeth_surprised_R", "Goblin_neutral", "Goblin_surprised", "hero_happy", "hero", "kinght_full", "knight_helf"];
-const mainCommands = ["SAY|", "BG|", "CHARA|", "CHOICE|", "LABEL|", "GOTO|", "SPRITE|", "SPRITE_CLR|", "MV|", "[BGM_PLAY:", "[SFX_PLAY:"];
+const mainCommands = ["SAY|", "BG|", "CHARA|", "CHOICE|", "LABEL|", "GOTO|", "SPRITE|", "SPRITE_CLR|", "MV|", "BGM_PLAY|", "BGM_STOP", "BGM_FADE_OUT|", "BGM_FADE_IN|", "SFX_PLAY|", "SET|", "CALL_SCRIPT|", "IF|"];
 const charaSubCommands = ["SHOW|", "HIDE|", "CLEAR"];
 
 /**
  * ScriptManager 模組 (維持原樣)
  */
-const ScriptManager = (function() { /* ... (內容與之前相同，此處省略) ... */
+const ScriptManager = (function () { /* ... (內容與之前相同，此處省略) ... */
     const STORAGE_KEY_LIST = 'scripteditor_scripts', STORAGE_KEY_PREFIX = 'scripteditor_script_';
     let scripts = [], currentScriptName = '', onListChangedCallback = null;
     function init() { const savedList = localStorage.getItem(STORAGE_KEY_LIST); if (savedList) { try { scripts = JSON.parse(savedList); } catch (e) { scripts = []; } } if (scripts.length === 0) { const defaultName = 'default'; scripts.push({ name: defaultName, isMain: true }); saveList(); if (!localStorage.getItem(STORAGE_KEY_PREFIX + defaultName)) localStorage.setItem(STORAGE_KEY_PREFIX + defaultName, ''); } const mainScript = scripts.find(s => s.isMain) || scripts[0]; currentScriptName = mainScript.name; }
@@ -45,9 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const editorTitle = document.getElementById('editor-title');
 
     // --- CodeMirror Custom Mode Definition ---
-    CodeMirror.defineMode("avg-script", function() {
+    CodeMirror.defineMode("avg-script", function () {
         return {
-            token: function(stream, state) {
+            token: function (stream, state) {
                 // Comments
                 if (stream.sol() && stream.match(/^\s*#/)) {
                     stream.skipToEnd();
@@ -68,16 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Highlight labels and goto targets
                 if (state.lastToken === "keyword" && (state.lastCommand === "LABEL" || state.lastCommand === "GOTO")) {
-                     stream.eatWhile(/[\w_]/);
-                     return "atom";
+                    stream.eatWhile(/[\w_]/);
+                    return "atom";
                 }
-                
+
                 // Highlight character names in SAY
                 if (state.lastToken === "operator" && state.lastCommand === "SAY") {
                     stream.eatWhile(/[^|]*/);
                     return "variable-2";
                 }
-                
+
                 // Track last command for contextual coloring
                 if (stream.current().trim()) {
                     const current = stream.current().toUpperCase().replace(/[\[|\]]/g, '');
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stream.next();
                 return null;
             },
-            startState: function() {
+            startState: function () {
                 return { lastToken: null, lastCommand: null };
             }
         };
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             extraKeys: { "Ctrl-Space": "autocomplete" },
             hintOptions: { hint: CodeMirror.helpers.hint.avg }
         });
-        updateEditorTitle(false); 
+        updateEditorTitle(false);
         updatePreview(editor.getValue());
         updateVisualPreview(editor.getValue()); // Initial visual preview
 
@@ -135,19 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentName = ScriptManager.getCurrentScriptName();
             if (!currentFileHandle) {
                 ScriptManager.saveScript(currentName, content);
-                updateEditorTitle(true); 
+                updateEditorTitle(true);
             }
         });
-        
+
         // Update visual preview on cursor movement to reflect context at that line
         editor.on('cursorActivity', (cm) => {
-             updateVisualPreview(cm.getValue());
+            updateVisualPreview(cm.getValue());
         });
 
         // 監聽輸入前動作，切換為「編輯中」
         editor.on('beforeChange', () => {
             if (!currentFileHandle) {
-                updateEditorTitle(false); 
+                updateEditorTitle(false);
             }
         });
 
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cursor = editor.getCursor();
         const currentLineIndex = cursor.line;
         const lines = fullText.split('\n');
-        
+
         // State to track
         let lastBG = null;
         const chars = { left: null, center: null, right: null };
@@ -181,11 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scan backwards from current line to find states
         // Strategy: Scan entire script up to current line to simulate state accumulation
         // Limitation: Does not handle GOTO/IF logic, linear scan only.
-        
+
         for (let i = 0; i <= currentLineIndex; i++) {
             const line = lines[i].trim();
             if (!line || line.startsWith('#')) continue;
-            
+
             const parts = line.split('|');
             const cmd = parts[0].toUpperCase();
 
@@ -210,12 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Compatible with old SPRITE|img|pos|...
                 const img = parts[1];
                 const pos = parts[2] ? parts[2].toLowerCase() : 'center';
-                 if (['left', 'center', 'right'].includes(pos)) {
+                if (['left', 'center', 'right'].includes(pos)) {
                     chars[pos] = img;
                 }
             } else if (cmd === 'SPRITE_CLR') {
-                 const pos = parts[1] ? parts[1].toLowerCase() : 'center';
-                 if (['left', 'center', 'right'].includes(pos)) chars[pos] = null;
+                const pos = parts[1] ? parts[1].toLowerCase() : 'center';
+                if (['left', 'center', 'right'].includes(pos)) chars[pos] = null;
             }
 
             // Only show dialog if it's the CURRENT line
@@ -236,18 +236,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // If script says "BG|bg_room.jpg", file is "bg_room.jpg".
             let src = lastBG.includes('/') ? lastBG : `assets/bg/${lastBG}`;
             if (!src.match(/\.(jpg|png|jpeg)$/i)) src += '.jpg'; // Default to jpg for BG
-            
+
             // Allow png fallback? Browsers don't support "try urls" natively easily without JS check.
             // For now, assume jpg for BG as per project convention, or check if name has extension.
             if (lastBG.includes('.')) src = `assets/bg/${lastBG}`;
 
             if (bgImg.src !== window.location.origin + '/' + src) { // Avoid reload if same
-                 bgImg.style.display = 'block';
-                 bgImg.src = src;
-                 // Simple error handler to try png if jpg fails
-                 bgImg.onerror = function() { 
-                     if (this.src.endsWith('.jpg')) this.src = this.src.replace('.jpg', '.png'); 
-                 };
+                bgImg.style.display = 'block';
+                bgImg.src = src;
+                // Simple error handler to try png if jpg fails
+                bgImg.onerror = function () {
+                    if (this.src.endsWith('.jpg')) this.src = this.src.replace('.jpg', '.png');
+                };
             }
         } else {
             bgImg.style.display = 'none';
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (charName) {
                 let src = `assets/char/${charName}`;
                 if (!src.match(/\.(png|jpg)$/i)) src += '.png'; // Default to png for chars
-                 
+
                 if (imgEl.src !== window.location.origin + '/' + src) {
                     imgEl.style.display = 'block';
                     imgEl.src = src;
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Script List UI Logic ---
     const scriptListEl = document.getElementById('script-list');
     const searchInput = document.getElementById('script-search');
-    
+
     function renderScriptList() {
         scriptListEl.innerHTML = '';
         const scripts = ScriptManager.getScriptList();
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'script-name';
                 nameSpan.textContent = script.name;
-                
+
                 const mainBadge = document.createElement('span');
                 mainBadge.className = 'main-badge';
                 mainBadge.textContent = 'MAIN';
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ScriptManager.setCurrentScriptName(script.name);
                         editor.setValue(ScriptManager.getScriptContent(script.name));
                         // Clear file handle when switching internal scripts
-                        currentFileHandle = null; 
+                        currentFileHandle = null;
                         updateEditorTitle();
                         renderScriptList();
                     }
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ScriptManager.addScript(name)) {
                 // Auto switch to new script
                 ScriptManager.setCurrentScriptName(name);
-                editor.setValue(""); 
+                editor.setValue("");
                 currentFileHandle = null;
                 updateEditorTitle();
                 renderScriptList();
@@ -399,21 +399,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 檔案系統 API 邏輯與 UI ---
     async function openFile() { try { [currentFileHandle] = await window.showOpenFilePicker({ types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt', '.md'] } }], multiple: false }); const file = await currentFileHandle.getFile(); const content = await file.text(); editor.setValue(content); ScriptManager.setCurrentScriptName(currentFileHandle.name); updateEditorTitle(); } catch (err) { if (err.name !== 'AbortError') console.error("開啟檔案失敗:", err); } }
     async function saveFile() { try { if (currentFileHandle) { const writable = await currentFileHandle.createWritable(); await writable.write(editor.getValue()); await writable.close(); alert(`檔案 "${currentFileHandle.name}" 已儲存。`); } else { const handle = await window.showSaveFilePicker({ types: [{ description: 'Text Files', accept: { 'text/plain': ['.txt', '.md'] } }] }); currentFileHandle = handle; await saveFile(); updateEditorTitle(); } } catch (err) { if (err.name !== 'AbortError') console.error("儲存檔案失敗:", err); } }
-    
-    function updateEditorTitle(isSaved = false) { 
+
+    function updateEditorTitle(isSaved = false) {
         const currentName = ScriptManager.getCurrentScriptName();
-        if (currentFileHandle) { 
-            editorTitle.textContent = `編輯中 (檔案): ${currentFileHandle.name}`; 
+        if (currentFileHandle) {
+            editorTitle.textContent = `編輯中 (檔案): ${currentFileHandle.name}`;
             editorTitle.style.color = "#007acc";
-        } else { 
+        } else {
             if (isSaved) {
                 editorTitle.textContent = `已儲存 (本機): ${currentName}`;
                 editorTitle.style.color = "#4ec9b0"; // 綠色表示儲存完成
             } else {
-                editorTitle.textContent = `編輯中 (本機): ${currentName}`; 
+                editorTitle.textContent = `編輯中 (本機): ${currentName}`;
                 editorTitle.style.color = "#007acc"; // 藍色表示編輯中
             }
-        } 
+        }
     }
 
     function updatePreview(text) { const syntaxPreview = document.getElementById('syntax-preview'); if (!syntaxPreview) return; const lines = text.split('\n'); const lastLine = lines[lines.length - 1] || ""; syntaxPreview.textContent = `[檔案: ${currentFileHandle ? currentFileHandle.name : ScriptManager.getCurrentScriptName()}] [行: ${lines.length}]`; }
@@ -422,16 +422,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('run-button').addEventListener('click', () => { const scriptText = editor.getValue(), scriptName = currentFileHandle ? currentFileHandle.name : ScriptManager.getCurrentScriptName(); if (window.opener) { window.opener.postMessage({ type: 'UPDATE_SCRIPT', script: scriptText, scriptName }, '*'); } else { alert(`劇本 "${scriptName}" 已儲存，但找不到主遊戲視窗。`); } });
     document.getElementById('load-example-btn').addEventListener('click', () => { editor.setValue(`BG|bg_room\nSAY|主角|...\n# 這是一行註解\nCHARA|SHOW|hero_happy|left`); currentFileHandle = null; updateEditorTitle(); });
     // Toggle sidebar logic removed for 3-column layout
-    
+
     const fileUploader = document.getElementById('file-uploader'), uploadBtn = document.getElementById('upload-script-btn'), overwriteCheckbox = document.getElementById('overwrite-main-checkbox');
     if (uploadBtn && fileUploader) { uploadBtn.addEventListener('click', () => fileUploader.click()); fileUploader.addEventListener('change', async (event) => { const file = event.target.files[0]; if (!file) return; try { const result = await ScriptManager.handleFileUpload(file, overwriteCheckbox.checked); alert(`腳本 "${result.name}" 已透過舊版方式上傳。`); currentFileHandle = null; updateEditorTitle(); editor.setValue(ScriptManager.getScriptContent(result.name)); } catch (error) { alert(`錯誤: ${error}`); } }); }
 
     // --- Final Initialization ---
     initEditor();
-    
+
     // Initial Render (Moved after initEditor)
     renderScriptList();
-    
+
     window.ScriptManager = ScriptManager;
     console.log("Script Editor V2.3 (Syntax Highlighting) Initialized");
 });

@@ -15,7 +15,7 @@ export class ScriptEngine implements IGameModule {
     private isWaitingForChoice: boolean = false;
     private isWaitingForAsset: boolean = false;
     private isWaitingForVideo: boolean = false;
-    
+
     /**
      * 紀錄立繪位置與角色ID的對應關係。
      * 用於在執行 SAY 指令時，根據說話者名稱決定哪個位置的立繪需要高亮。
@@ -74,7 +74,7 @@ export class ScriptEngine implements IGameModule {
         let isBlocking = false;
         while (!isBlocking && this.currentLineIndex < this.scriptLines.length) {
             const line = this.scriptLines[this.currentLineIndex];
-            
+
             // If line is empty or a comment, skip it and continue the loop
             if (!line.trim() || line.trim().startsWith('#')) {
                 this.currentLineIndex++;
@@ -109,64 +109,11 @@ export class ScriptEngine implements IGameModule {
     private async executeLine(line: string): Promise<void> {
         if (line.trim().startsWith('#')) return;
 
-        const commandRegex = /\[([A-Z_]+):(.*)\]/;
-        const match = line.match(commandRegex);
+        // 移除舊的方括號格式音訊指令解析
+        // 現在統一使用管道符號格式 (例如: BGM_PLAY|filename|volume|loop)
 
-        if (match) {
-            const command = match[1].trim();
-            const args = match[2].split(',').map(arg => arg.trim());
-            const assetMgr = this.kernel.assetManager;
-
-            this.isWaitingForAsset = true;
-            try {
-                switch (command) {
-                    case 'BGM_PLAY': {
-                        const bgmKey = args[0];
-                        const bgmVol = parseFloat(args[1]);
-                        const bgmLoop = args[2] === 'true';
-                        const success = await assetMgr.ensureLoaded(bgmKey, 'music');
-                        if (success) {
-                            const assetKey = bgmKey.split('/').pop() || bgmKey;
-                            const audioAsset = assetMgr.getAsset(assetKey);
-                            if (audioAsset instanceof HTMLAudioElement) {
-                                this.kernel.audio.playBGM(audioAsset, bgmVol, bgmLoop);
-                            }
-                        }
-                        break;
-                    }
-                    case 'BGM_STOP':
-                        this.kernel.audio.stopBGM();
-                        break;
-                    case 'BGM_FADE_OUT':
-                        this.kernel.audio.fadeOutBGM(parseFloat(args[0]));
-                        break;
-                    case 'BGM_FADE_IN':
-                        this.kernel.audio.fadeInBGM(parseFloat(args[0]), args[1], parseFloat(args[2]), args[3] === 'true');
-                        break;
-                    case 'SFX_PLAY': {
-                        const sfxKey = args[0];
-                        const sfxVol = parseFloat(args[1]);
-                        const success = await assetMgr.ensureLoaded(sfxKey, 'sound');
-                        if (success) {
-                            const assetKey = sfxKey.split('/').pop() || sfxKey;
-                            const audioAsset = assetMgr.getAsset(assetKey);
-                            if (audioAsset instanceof HTMLAudioElement) {
-                                this.kernel.audio.playSFX(audioAsset.src, sfxVol);
-                            }
-                        }
-                        break;
-                    }
-                    default:
-                        console.error(`Unknown audio command: ${command}`);
-                }
-            } finally {
-                this.isWaitingForAsset = false;
-            }
-            return;
-        }
-        
         const parts = line.split('|');
-        const command = parts[0];
+        const command = parts[0].trim().toUpperCase(); // 指令改為不分大小寫
 
         switch (command) {
             case 'LABEL':
@@ -291,28 +238,73 @@ export class ScriptEngine implements IGameModule {
                     console.error(`[ScriptEngine] Script not found in LocalStorage: ${nextScriptName}`);
                 }
                 break;
-            case 'BGM':
-            case 'SE':
-                 this.isWaitingForAsset = true;
-                 try {
-                    const key = parts[1];
-                    const type = command === 'BGM' ? 'music' : 'sound';
-                    const success = await this.kernel.assetManager.ensureLoaded(key, type);
+            case 'BGM_PLAY': {
+                // 語法: BGM_PLAY|檔案名稱|音量|是否循環
+                // 範例: BGM_PLAY|001.wav|0.7|true
+                const filename = parts[1];
+                const volume = parseFloat(parts[2]);
+                const loop = parts[3] === 'true';
+                const fullPath = `assets/music/${filename}`;
+
+                this.isWaitingForAsset = true;
+                try {
+                    const success = await this.kernel.assetManager.ensureLoaded(fullPath, 'music');
                     if (success) {
-                        const assetKey = key.split('/').pop() || key;
-                        const audioAsset = this.kernel.assetManager.getAsset(assetKey);
+                        const audioAsset = this.kernel.assetManager.getAsset(filename);
                         if (audioAsset instanceof HTMLAudioElement) {
-                            if (command === 'BGM') {
-                                this.kernel.audio.playBGM(audioAsset, 1.0, true);
-                            } else {
-                                this.kernel.audio.playSFX(audioAsset.src, 1.0);
-                            }
+                            this.kernel.audio.playBGM(audioAsset, volume, loop);
                         }
                     }
                 } finally {
                     this.isWaitingForAsset = false;
                 }
                 break;
+            }
+            case 'BGM_STOP':
+                // 語法: BGM_STOP
+                // 立即停止背景音樂
+                this.kernel.audio.stopBGM();
+                break;
+            case 'BGM_FADE_OUT': {
+                // 語法: BGM_FADE_OUT|秒數
+                // 範例: BGM_FADE_OUT|5
+                const duration = parseFloat(parts[1]);
+                this.kernel.audio.fadeOutBGM(duration);
+                break;
+            }
+            case 'BGM_FADE_IN': {
+                // 語法: BGM_FADE_IN|秒數|檔案名稱|目標音量|是否循環
+                // 範例: BGM_FADE_IN|3|001.wav|0.6|true
+                const duration = parseFloat(parts[1]);
+                const filename = parts[2];
+                const targetVolume = parseFloat(parts[3]);
+                const loop = parts[4] === 'true';
+                const fullPath = `assets/music/${filename}`;
+
+                this.kernel.audio.fadeInBGM(duration, fullPath, targetVolume, loop);
+                break;
+            }
+            case 'SFX_PLAY': {
+                // 語法: SFX_PLAY|檔案名稱|音量
+                // 範例: SFX_PLAY|night_insects.wav|0.5
+                const filename = parts[1];
+                const volume = parseFloat(parts[2]);
+                const fullPath = `assets/sound/${filename}`;
+
+                this.isWaitingForAsset = true;
+                try {
+                    const success = await this.kernel.assetManager.ensureLoaded(fullPath, 'sound');
+                    if (success) {
+                        const audioAsset = this.kernel.assetManager.getAsset(filename);
+                        if (audioAsset instanceof HTMLAudioElement) {
+                            this.kernel.audio.playSFX(audioAsset.src, volume);
+                        }
+                    }
+                } finally {
+                    this.isWaitingForAsset = false;
+                }
+                break;
+            }
             case 'IF':
                 const variableValue = this.stateManager.getValue(parts[1]);
                 const targetIfLabel = parts[4];
@@ -322,18 +314,23 @@ export class ScriptEngine implements IGameModule {
                     }
                 }
                 break;
-            case 'MV': // Play Video with optional volume
-                const videoPath = parts[1];
-                const volume = parts.length > 2 ? parseFloat(parts[2]) : 1.0; // Extract optional volume
+            case 'MV': { // Play Video with optional volume
+                // 語法: MV|檔案名稱|音量(可選)
+                // 範例: MV|main.mp4|1.0
+                const filename = parts[1];
+                const volume = parts.length > 2 ? parseFloat(parts[2]) : 1.0;
+                const fullPath = `assets/mov/${filename}`; // 路徑固定在 assets/mov/
+
                 if (this.kernel.uiModule) {
                     this.isWaitingForVideo = true;
                     try {
-                        await this.kernel.uiModule.playVideo(videoPath, volume); // Pass volume
+                        await this.kernel.uiModule.playVideo(fullPath, volume);
                     } finally {
                         this.isWaitingForVideo = false;
                     }
                 }
                 break;
+            }
             default:
                 console.error(`Unknown command: ${command}`);
         }

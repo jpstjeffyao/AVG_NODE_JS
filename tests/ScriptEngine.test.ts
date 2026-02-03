@@ -81,7 +81,7 @@ describe('ScriptEngine', () => {
         uiModule = kernel.uiModule; // Get reference from kernel
         assetManager = kernel.assetManager; // Get reference from kernel
         audioManager = kernel.audio; // Get reference from kernel
-        
+
         // CharacterModule's initialize depends on DOM, call it here
         kernel.characterModule.initialize();
     });
@@ -154,23 +154,67 @@ describe('ScriptEngine', () => {
     // REMOVED SPRITE test case
 
     test('BGM_PLAY 指令播放背景音樂', async () => {
-        const script = ['[BGM_PLAY: music/FairyTale.mp3, 0.7, true]'];
+        const script = ['BGM_PLAY|FairyTale.mp3|0.7|true'];
         const ensureLoadedSpy = jest.spyOn(assetManager, 'ensureLoaded').mockResolvedValue(true);
-        const getAssetSpy = jest.spyOn(assetManager, 'getAsset').mockReturnValue(new (global as any).HTMLAudioElement('music/FairyTale.mp3'));
+        const getAssetSpy = jest.spyOn(assetManager, 'getAsset').mockReturnValue(new (global as any).HTMLAudioElement('assets/music/FairyTale.mp3'));
         const playBGM = jest.spyOn(audioManager, 'playBGM');
 
         scriptEngine.loadScript(script);
         await scriptEngine.next();
 
-        expect(ensureLoadedSpy).toHaveBeenCalledWith('music/FairyTale.mp3', 'music');
+        expect(ensureLoadedSpy).toHaveBeenCalledWith('assets/music/FairyTale.mp3', 'music');
         expect(getAssetSpy).toHaveBeenCalledWith('FairyTale.mp3');
         expect(playBGM).toHaveBeenCalledWith(expect.any(HTMLAudioElement), 0.7, true);
+    });
+
+    test('BGM_STOP 指令停止背景音樂', async () => {
+        const script = ['BGM_STOP'];
+        const stopBGM = jest.spyOn(audioManager, 'stopBGM');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(stopBGM).toHaveBeenCalled();
+    });
+
+    test('BGM_FADE_OUT 指令淡出背景音樂', async () => {
+        const script = ['BGM_FADE_OUT|5'];
+        const fadeOutBGM = jest.spyOn(audioManager, 'fadeOutBGM');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(fadeOutBGM).toHaveBeenCalledWith(5);
+    });
+
+    test('BGM_FADE_IN 指令淡入背景音樂', async () => {
+        const script = ['BGM_FADE_IN|3|001.wav|0.6|true'];
+        const fadeInBGM = jest.spyOn(audioManager, 'fadeInBGM');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(fadeInBGM).toHaveBeenCalledWith(3, 'assets/music/001.wav', 0.6, true);
+    });
+
+    test('SFX_PLAY 指令播放音效', async () => {
+        const script = ['SFX_PLAY|night_insects.wav|0.5'];
+        const ensureLoadedSpy = jest.spyOn(assetManager, 'ensureLoaded').mockResolvedValue(true);
+        const getAssetSpy = jest.spyOn(assetManager, 'getAsset').mockReturnValue(new (global as any).HTMLAudioElement('assets/sound/night_insects.wav'));
+        const playSFX = jest.spyOn(audioManager, 'playSFX');
+
+        scriptEngine.loadScript(script);
+        await scriptEngine.next();
+
+        expect(ensureLoadedSpy).toHaveBeenCalledWith('assets/sound/night_insects.wav', 'sound');
+        expect(getAssetSpy).toHaveBeenCalledWith('night_insects.wav');
+        expect(playSFX).toHaveBeenCalledWith(expect.any(String), 0.5);
     });
 
     test('MV 指令播放影片', async () => {
         const script = ['MV|assets/mov/main.mp4']; // Updated path
         const playVideoSpy = jest.spyOn(uiModule, 'playVideo').mockResolvedValue(undefined);
-        
+
         scriptEngine.loadScript(script);
         await scriptEngine.next();
 
@@ -220,7 +264,7 @@ describe('ScriptEngine', () => {
 
         scriptEngine.loadScript(script);
         await scriptEngine.next();
-        
+
         expect(renderTextSpy).toHaveBeenCalledWith('Hero', 'After comments');
     });
 

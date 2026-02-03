@@ -1,0 +1,149 @@
+# Script Editor 範例腳本 (Full Feature Demo)
+
+**說明:**
+此腳本專為展示 AVG Script Editor 的所有功能而設計，並使用您提供的素材庫內容。
+請將下方內容儲存為 `.txt` 檔案 (例如 `DemoScript.txt`)，並透過編輯器的「開啟檔案」功能載入，或是直接複製貼上到編輯器中執行。
+
+**功能展示清單:**
+- [x] 背景切換與震動 (BG)
+- [x] 角色立繪控制 (CHARA)
+- [x] 對話演出 (SAY)
+- [x] 選項分支 (CHOICE, GOTO, LABEL)
+- [x] 邏輯控制 (SET, IF)
+- [x] 影片播放 (MV)
+- [x] 音樂控制 (BGM_PLAY, FADE_IN/OUT)
+- [x] 音效播放 (SFX_PLAY)
+
+---
+
+```text
+# ==========================================
+# AVG Script Editor 功能展示腳本
+# ==========================================
+
+# --- 1. [初始化] 設定變數與環境 ---
+# 設定全域變數，用於後續的邏輯判斷
+SET|affection|0
+SET|has_ticket|0
+
+# --- 2. [MV] 播放開場影片 ---
+# 注意: MV 指令現在只需填寫檔名，且不分大小寫
+mv|Main.mp4|1.0
+
+# --- 3. [BG & BGM] 場景: 城鎮中心 ---
+# 設定背景 (自動對應 assets/bg/bg_01.jpg)
+BG|bg_01
+
+# 淡入播放背景音樂 (中世紀幻想風格)
+# 自動對應 assets/music/FairyTale.mp3
+BGM_FADE_IN|2|FairyTale.mp3|0.7|true
+
+# 播放環境音效 (市集吵雜聲)
+# 自動對應 assets/sound/busy-cafeteria-sound-27972.mp3
+SFX_PLAY|busy-cafeteria-sound-27972.mp3|0.5
+
+SAY|系統|歡迎來到 AVG Script Editor 功能展示劇場。
+SAY|系統|在這個劇本中，我們將運用您的素材庫來展示各種指令效果。
+
+# --- 4. [CHARA] 角色登場 ---
+# 在中間顯示 Captain (開心表情)
+CHARA|SHOW|Captain_happy|center
+
+SAY|Captain|嘿！你好啊，冒險者！歡迎來到我們熱鬧的城鎮。
+SAY|Captain|看到這繁華的景象了嗎？這可是我們最自豪的地方。
+
+# 切換表情為普通
+CHARA|SHOW|Captain_neutral|center
+SAY|Captain|不過，最近地牢那邊似乎有些騷動...
+
+# --- 5. [CHOICE] 選項分支 ---
+SAY|Captain|你有興趣去調查看看嗎？
+
+CHOICE|當然，樂意效勞:accept_request|聽起來很危險，我再想想:reject_request
+
+# --- 分支 A: 拒絕 ---
+LABEL|reject_request
+CHARA|SHOW|Captain_sad|center
+SAY|Captain|喔...這真是太遺憾了。安全的確是最重要的。
+SAY|Captain|如果你改變主意的話，隨時來找我。
+# 選擇拒絕後，跳轉到結束或特定標籤
+GOTO|end_scene
+
+# --- 分支 B: 接受 ---
+LABEL|accept_request
+# 設定變數，記錄玩家已接受任務
+SET|has_ticket|1
+CHARA|SHOW|Captain_happy|center
+SAY|Captain|太棒了！我就知道你充滿勇氣！
+SAY|Captain|事不宜遲，現在就出發吧！
+
+# --- 6. [Transition] 場景轉換特效 ---
+# 音樂淡出
+BGM_FADE_OUT|2
+# 播放風聲音效
+SFX_PLAY|desert-wind-gust-sound-effect-473421.mp3|0.8
+
+# 切換背景並帶有「震動效果」(參數: 0.5)
+BG|bg_12|0.5
+SAY|旁白|你來到了一個陰森的洞窟入口...
+
+# --- 7. [Logic Loop] 地牢探險 ---
+BG|bg_02
+# 播放緊張的 BGM
+BGM_PLAY|BGM06_緊張不安的.wav|0.8|true
+
+# 播放恐怖音效 (老鼠聲)
+SFX_PLAY|mouse-squeaks-68287.mp3|0.7
+
+CHARA|SHOW|Goblin_neutral|center
+SAY|Goblin|嘎嘎！是誰！竟敢闖入哥布林大王的領地！
+
+# --- 8. [IF] 條件判斷 ---
+# 檢查是否有接受任務 (has_ticket == 1)
+IF|has_ticket|1|GOTO|battle_mode
+SAY|Goblin|嘿？你只是路過的遊客嗎？快滾吧！
+GOTO|escape_mode
+
+LABEL|battle_mode
+SAY|Goblin|你是衛兵派來的！受死吧！
+
+# 模擬戰鬥 (背景劇烈震動 + 音效)
+BG|bg_02|0.8
+SFX_PLAY|gated-drop-sound-effect-240900.mp3|1.0
+CHARA|SHOW|Goblin_surprised|center
+SAY|Goblin|嗚...好強...
+
+# 敵人消失
+CHARA|HIDE|center
+SAY|旁白|哥布林落荒而逃了。
+
+# --- 9. [Video] 劇情影片 ---
+SAY|旁白|你在地牢深處發現了被囚禁的人...
+# 播放劇情影片 (已簡化路徑)
+MV|003.mp5|1.0
+
+# --- 10. [End] 結局 ---
+# 切換到溫馨的場景
+BG|bg_08
+# 播放溫和的 BGM
+BGM_PLAY|BGM_01_柔和的農村.wav|0.6|true
+
+CHARA|SHOW|elizabeth_happy_L|center
+SAY|elizabeth|謝謝你救了我...這裡比地牢舒服多了。
+
+# 增加好感度
+SET|affection|10
+SAY|elizabeth|你是我的英雄！(好感度上升)
+
+LABEL|end_scene
+SAY|系統|功能展示結束。感謝您的遊玩！
+SAY|系統|接下來準備重置場景...
+
+# 清除所有圖層與音樂
+CHARA|CLEAR
+BGM_STOP
+BG|Main
+
+# (可選) 呼叫另一個腳本
+# CALL_SCRIPT|DemoScript_Part2
+```

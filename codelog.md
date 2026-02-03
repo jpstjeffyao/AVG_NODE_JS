@@ -1,4 +1,105 @@
+# 腳本引擎指令優化 (2026-02-02 22:34)
+
+## 🔄 指令優化 (Command Optimization)
+
+### MV 指令路徑簡化 (MV Command Path Simplification)
+*   **變更內容**: `MV` 指令的路徑現在固定在 `assets/mov/` 底下。
+*   **新語法**: `MV|檔案名稱|音量(可選)`
+*   **優點**: 減少腳本撰寫負擔，統一影片資產管理。
+*   **範例**: `MV|Main.mp4|1.0` 會自動對應到 `assets/mov/Main.mp4`。
+
+### 指令不分大小寫 (Case-Insensitive Commands)
+*   **變更內容**: 腳本指令現在改為 **不分大小寫** (Case-Insensitive)。
+*   **運作機制**: 在 `executeLine` 處理時會先將指令部分轉為大寫再進行比對。
+*   **優點**: 提升撰寫劇本時的靈活性，降低大小寫輸入錯誤導致的指令無效問題。
+*   **範例**: `mv|...`, `Bg|...`, `say|...` 均可正常運作。
+
+# 遊戲邏輯指令文件更新 (2026-02-02 22:18)
+
+
+## 📝 文件更新 (Documentation Update)
+
+### 遊戲邏輯控制指令詳細說明 (Game Logic Commands Documentation)
+*   **更新內容**: 在 `scriptFormat.md` 中新增「遊戲邏輯控制指令」完整章節
+*   **新增文件**:
+    *   **SET 指令**: 詳細說明變數設定功能，包含語法、參數、應用場景（好感度系統、分支劇情、成就系統等）
+    *   **IF 指令**: 完整的條件判斷說明，包含運作邏輯、基礎範例、多重分支進階範例
+    *   **CALL_SCRIPT 指令**: 腳本切換功能說明，包含運作機制、劇本組織建議、注意事項
+    *   **綜合應用範例**: 提供結合三個指令的完整遊戲場景範例
+*   **文件特色**:
+    *   每個指令都有清晰的語法格式說明
+    *   提供實用的程式碼範例
+    *   包含應用場景與最佳實踐建議
+    *   綜合範例展示如何組合使用多個指令
+*   **影響檔案**: `scriptFormat.md`
+
+# 腳本編輯器自動完成功能更新 (2026-02-02 22:14)
+
+
+## ✨ 功能增強 (Script Editor Autocomplete Enhancement)
+
+### 音訊指令自動完成支援 (Audio Command Autocomplete Support)
+*   **功能描述**: 更新腳本編輯器的自動完成字庫，支援新的管道符號格式音訊指令。
+*   **新增指令**:
+    *   `BGM_PLAY|` - 播放背景音樂
+    *   `BGM_STOP` - 停止背景音樂
+    *   `BGM_FADE_OUT|` - 背景音樂淡出
+    *   `BGM_FADE_IN|` - 背景音樂淡入
+    *   `SFX_PLAY|` - 播放音效
+*   **額外改進**: 同時加入 `SET|`, `CALL_SCRIPT|`, `IF|` 等指令到自動完成清單，提升編輯體驗。
+*   **語法高亮**: 更新 `mainCommandRegex` 正則表達式，確保新指令能正確高亮顯示。
+*   **影響檔案**: `src/scripteditor.js`
+*   **使用方式**: 在編輯器中輸入 `BGM` 或 `SFX` 時，按 `Ctrl+Space` 或自動觸發提示清單。
+
+# 音訊指令格式標準化 (2026-02-02 21:56)
+
+
+## 🔄 重構 (Audio Command Format Standardization)
+
+### 統一音訊指令語法 (Unified Audio Command Syntax)
+*   **變更內容**: 將所有音訊控制指令從方括號格式 `[COMMAND: args]` 改為管道符號格式 `COMMAND|args`，與其他腳本指令 (BG, SAY, CHARA 等) 保持一致。
+*   **新語法**:
+    *   `BGM_PLAY|檔案名稱|音量|是否循環` (原: `[BGM_PLAY: 路徑, 音量, 循環]`)
+    *   `BGM_STOP` (原: `[BGM_STOP]`)
+    *   `BGM_FADE_OUT|秒數` (原: `[BGM_FADE_OUT: 秒數]`)
+    *   `BGM_FADE_IN|秒數|檔案名稱|目標音量|是否循環` (原: `[BGM_FADE_IN: 秒數, 路徑, 音量, 循環]`)
+    *   `SFX_PLAY|檔案名稱|音量` (原: `[SFX_PLAY: 路徑, 音量]`)
+
+### 簡化資產路徑處理 (Simplified Asset Path Handling)
+*   **變更內容**: 音訊檔案路徑不再需要完整路徑，只需填寫檔案名稱，系統會自動加上固定前綴。
+*   **路徑規則**:
+    *   **BGM (背景音樂)**: 固定路徑為 `assets/music/`
+        *   範例: `BGM_PLAY|001.wav|0.7|true` → 載入 `assets/music/001.wav`
+    *   **SFX (音效)**: 固定路徑為 `assets/sound/`
+        *   範例: `SFX_PLAY|night_insects.wav|0.5` → 載入 `assets/sound/night_insects.wav`
+*   **優點**: 
+    *   減少腳本撰寫時的重複輸入
+    *   統一資產組織結構
+    *   降低路徑錯誤的可能性
+
+### 技術實作 (Technical Implementation)
+*   **影響檔案**:
+    *   `src/modules/ScriptEngine.ts`: 
+        *   移除方括號格式的正則表達式解析邏輯 (line 112-166)
+        *   移除舊的 `BGM`/`SE` 簡化指令 (line 241-262)
+        *   新增五個音訊指令處理器: `BGM_PLAY`, `BGM_STOP`, `BGM_FADE_OUT`, `BGM_FADE_IN`, `SFX_PLAY`
+        *   實作自動路徑前綴邏輯 (`assets/music/` 和 `assets/sound/`)
+    *   `scriptFormat.md`: 更新音訊控制指令文件，反映新語法與路徑規則
+    *   `tests/ScriptEngine.test.ts`: 
+        *   更新現有 `BGM_PLAY` 測試案例
+        *   新增四個測試案例: `BGM_STOP`, `BGM_FADE_OUT`, `BGM_FADE_IN`, `SFX_PLAY`
+*   **測試結果**: 所有 13 個測試案例通過 ✅
+
+### 向後相容性 (Backward Compatibility)
+*   **⚠️ 破壞性變更**: 此更新不向後相容。使用舊語法 `[BGM_PLAY: ...]` 的腳本需要手動更新為新格式 `BGM_PLAY|...|...|...`。
+*   **遷移建議**: 
+    1. 將所有 `[BGM_PLAY: path, vol, loop]` 改為 `BGM_PLAY|filename|vol|loop`
+    2. 移除路徑中的 `assets/music/` 前綴，只保留檔案名稱
+    3. 將所有 `[SFX_PLAY: path, vol]` 改為 `SFX_PLAY|filename|vol`
+    4. 移除路徑中的 `assets/sound/` 或 `assets/sfx/` 前綴
+
 # Bootstrap 資產載入錯誤修復 (2026-02-02 21:31)
+
 
 ## 🐛 錯誤修復 (Bootstrap Asset Loading)
 
