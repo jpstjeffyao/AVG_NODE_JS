@@ -16,6 +16,8 @@ export class UIModule implements IGameModule {
   private _fullText: string = "";
   private _loadingOverlay: HTMLElement | null = null;
   private _fadeOverlay: HTMLElement | null = null;
+  private _autoPlayEnabled: boolean = false; // 自動播放開關
+  private _autoPlayTimer: number | null = null; // 自動播放計時器
 
   constructor(kernel: GameKernel) {
     this.kernel = kernel;
@@ -32,6 +34,8 @@ export class UIModule implements IGameModule {
    * 處理全螢幕點擊事件，用於推進遊戲腳本或跳過打字動畫
    */
   private handleDocumentClick = (): void => {
+    // 取消自動前進計時器（使用者手動點擊時）
+    this.cancelAutoAdvance();
     this.kernel?.onUserClick();
   };
 
@@ -247,8 +251,7 @@ export class UIModule implements IGameModule {
    * 點擊「系統設定」
    */
   private onSettingsClick(): void {
-    console.log("UIModule: Settings Clicked - Not Implemented");
-    alert("系統設定功能尚未實作！");
+    this.showSettingsMenu();
   }
 
   /**
@@ -279,6 +282,8 @@ export class UIModule implements IGameModule {
       this._isTyping = true;
 
       let currentIndex = 0;
+      // 從 ConfigManager 讀取文字速度
+      const textSpeed = this.kernel.configManager?.getSetting('textSpeed') || 40;
       // 啟動打字機效果計時器
       this._typingTimer = window.setInterval(() => {
         if (currentIndex < this._fullText.length) {
@@ -288,7 +293,7 @@ export class UIModule implements IGameModule {
           // 全部文字顯示完畢
           this.completeTyping();
         }
-      }, 40); // 每一格字元間隔 40 毫秒
+      }, textSpeed); // 使用設定的文字速度
     }
   }
 
@@ -313,6 +318,73 @@ export class UIModule implements IGameModule {
     }
 
     this._isTyping = false;
+
+    // 如果自動播放已啟用，設定計時器自動前進
+    if (this._autoPlayEnabled) {
+      this.scheduleAutoAdvance();
+    }
+  }
+
+  /**
+   * 排程自動前進（在文字顯示完成後）
+   */
+  private scheduleAutoAdvance(): void {
+    // 清除舊的計時器
+    if (this._autoPlayTimer !== null) {
+      window.clearTimeout(this._autoPlayTimer);
+    }
+
+    // 取得自動播放延遲時間
+    const delay = this.kernel.configManager?.getSetting('autoPlaySpeed') || 2000;
+
+    // 設定新的計時器
+    this._autoPlayTimer = window.setTimeout(() => {
+      this.kernel?.onUserClick();
+    }, delay);
+  }
+
+  /**
+   * 取消自動前進計時器
+   */
+  private cancelAutoAdvance(): void {
+    if (this._autoPlayTimer !== null) {
+      window.clearTimeout(this._autoPlayTimer);
+      this._autoPlayTimer = null;
+    }
+  }
+
+  /**
+   * 切換自動播放模式
+   */
+  public toggleAutoPlay(): void {
+    this._autoPlayEnabled = !this._autoPlayEnabled;
+
+    if (!this._autoPlayEnabled) {
+      this.cancelAutoAdvance();
+    } else if (!this._isTyping) {
+      // 如果當前沒有在打字且剛啟用，立即排程
+      this.scheduleAutoAdvance();
+    }
+
+    // 更新按鈕樣式
+    this.updateAutoPlayButton();
+    console.log(`[UIModule] Auto-play ${this._autoPlayEnabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * 更新自動播放按鈕的視覺狀態
+   */
+  private updateAutoPlayButton(): void {
+    const container = document.getElementById('system-btn-container');
+    if (!container) return;
+
+    const buttons = container.querySelectorAll('button');
+    buttons.forEach(btn => {
+      if (btn.textContent === 'Auto') {
+        btn.style.backgroundColor = this._autoPlayEnabled ? 'rgba(76,175,80,0.7)' : 'rgba(0,0,0,0.5)';
+        btn.style.border = this._autoPlayEnabled ? '1px solid #4CAF50' : '1px solid #666';
+      }
+    });
   }
 
   /**
@@ -665,7 +737,7 @@ export class UIModule implements IGameModule {
 
       createBtn('Save', () => this.showSaveLoadMenu('save'));
       createBtn('Load', () => this.showSaveLoadMenu('load'));
-      createBtn('Auto', () => console.log('Auto skip toggle')); // Placeholder
+      createBtn('Auto', () => this.toggleAutoPlay());
     }
     container.style.display = 'flex';
   }
@@ -676,6 +748,212 @@ export class UIModule implements IGameModule {
   public hideSystemButtons(): void {
     const container = document.getElementById('system-btn-container');
     if (container) container.style.display = 'none';
+  }
+
+  /**
+   * Show Settings Menu
+   * 顯示系統設定選單，包含音量與文字速度控制
+   */
+  public showSettingsMenu(): void {
+    const config = this.kernel.configManager;
+    if (!config) {
+      console.error('[UIModule] ConfigManager not available');
+      return;
+    }
+
+    const settings = config.getSettings();
+
+    // Create or get menu container
+    let menu = document.getElementById('settings-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'settings-menu';
+      menu.style.position = 'fixed';
+      menu.style.top = '0';
+      menu.style.left = '0';
+      menu.style.width = '100%';
+      menu.style.height = '100%';
+      menu.style.backgroundColor = 'rgba(0,0,0,0.85)';
+      menu.style.zIndex = '20000';
+      menu.style.display = 'flex';
+      menu.style.flexDirection = 'column';
+      menu.style.alignItems = 'center';
+      menu.style.justifyContent = 'center';
+      menu.style.color = 'white';
+      document.body.appendChild(menu);
+    }
+
+    menu.innerHTML = ''; // Clear content
+    menu.style.display = 'flex';
+
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = 'システム設定 (System Settings)';
+    title.style.marginBottom = '30px';
+    menu.appendChild(title);
+
+    // Settings Container
+    const container = document.createElement('div');
+    container.style.width = '500px';
+    container.style.padding = '20px';
+    container.style.backgroundColor = 'rgba(30,30,30,0.9)';
+    container.style.borderRadius = '10px';
+    menu.appendChild(container);
+
+    // Helper function to create slider control
+    const createSlider = (label: string, value: number, onChange: (val: number) => void) => {
+      const row = document.createElement('div');
+      row.style.marginBottom = '20px';
+
+      const labelEl = document.createElement('label');
+      labelEl.textContent = label;
+      labelEl.style.display = 'block';
+      labelEl.style.marginBottom = '8px';
+      labelEl.style.fontSize = '16px';
+      row.appendChild(labelEl);
+
+      const sliderRow = document.createElement('div');
+      sliderRow.style.display = 'flex';
+      sliderRow.style.alignItems = 'center';
+      sliderRow.style.gap = '10px';
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = '0';
+      slider.max = '100';
+      slider.value = (value * 100).toString();
+      slider.style.flex = '1';
+      slider.style.cursor = 'pointer';
+
+      const valueDisplay = document.createElement('span');
+      valueDisplay.textContent = `${Math.round(value * 100)}%`;
+      valueDisplay.style.minWidth = '50px';
+      valueDisplay.style.textAlign = 'right';
+
+      slider.oninput = (e) => {
+        const val = parseInt((e.target as HTMLInputElement).value) / 100;
+        valueDisplay.textContent = `${Math.round(val * 100)}%`;
+        onChange(val);
+      };
+
+      sliderRow.appendChild(slider);
+      sliderRow.appendChild(valueDisplay);
+      row.appendChild(sliderRow);
+
+      return row;
+    };
+
+    // Master Volume
+    container.appendChild(createSlider('主音量 (Master Volume)', settings.masterVolume, (val) => {
+      config.updateSetting('masterVolume', val);
+      this.kernel.audio?.setMasterVolume(val);
+    }));
+
+    // BGM Volume
+    container.appendChild(createSlider('背景音樂音量 (BGM Volume)', settings.bgmVolume, (val) => {
+      config.updateSetting('bgmVolume', val);
+      this.kernel.audio?.setBGMVolume(val);
+    }));
+
+    // SFX Volume
+    container.appendChild(createSlider('音效音量 (SFX Volume)', settings.sfxVolume, (val) => {
+      config.updateSetting('sfxVolume', val);
+      this.kernel.audio?.setSFXVolume(val);
+    }));
+
+    // Divider
+    const divider = document.createElement('hr');
+    divider.style.border = 'none';
+    divider.style.borderTop = '1px solid #555';
+    divider.style.margin = '20px 0';
+    container.appendChild(divider);
+
+    // Text Speed
+    const textSpeedRow = document.createElement('div');
+    textSpeedRow.style.marginBottom = '20px';
+
+    const textSpeedLabel = document.createElement('label');
+    textSpeedLabel.textContent = '文字速度 (Text Speed)';
+    textSpeedLabel.style.display = 'block';
+    textSpeedLabel.style.marginBottom = '8px';
+    textSpeedLabel.style.fontSize = '16px';
+    textSpeedRow.appendChild(textSpeedLabel);
+
+    const speedButtons = document.createElement('div');
+    speedButtons.style.display = 'flex';
+    speedButtons.style.gap = '10px';
+
+    const speeds = [
+      { label: '慢 (Slow)', value: 80 },
+      { label: '普通 (Normal)', value: 40 },
+      { label: '快 (Fast)', value: 20 }
+    ];
+
+    speeds.forEach(({ label, value }) => {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.style.flex = '1';
+      btn.style.padding = '10px';
+      btn.style.cursor = 'pointer';
+      btn.style.border = settings.textSpeed === value ? '2px solid #4CAF50' : '2px solid #666';
+      btn.style.backgroundColor = settings.textSpeed === value ? '#4CAF50' : '#444';
+      btn.style.color = 'white';
+      btn.style.borderRadius = '5px';
+
+      btn.onclick = () => {
+        config.updateSetting('textSpeed', value);
+        // Refresh menu to update button states
+        this.showSettingsMenu();
+      };
+
+      speedButtons.appendChild(btn);
+    });
+
+    textSpeedRow.appendChild(speedButtons);
+    container.appendChild(textSpeedRow);
+
+    // Action Buttons
+    const buttonRow = document.createElement('div');
+    buttonRow.style.display = 'flex';
+    buttonRow.style.gap = '10px';
+    buttonRow.style.marginTop = '30px';
+
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = '重設為預設值 (Reset Defaults)';
+    resetBtn.style.flex = '1';
+    resetBtn.style.padding = '12px';
+    resetBtn.style.cursor = 'pointer';
+    resetBtn.style.border = '1px solid #FF5722';
+    resetBtn.style.backgroundColor = '#FF5722';
+    resetBtn.style.color = 'white';
+    resetBtn.style.borderRadius = '5px';
+    resetBtn.onclick = () => {
+      if (confirm('確定要重設所有設定為預設值？')) {
+        config.resetToDefaults();
+        const defaultSettings = config.getSettings();
+        this.kernel.audio?.setMasterVolume(defaultSettings.masterVolume);
+        this.kernel.audio?.setBGMVolume(defaultSettings.bgmVolume);
+        this.kernel.audio?.setSFXVolume(defaultSettings.sfxVolume);
+        this.showSettingsMenu(); // Refresh menu
+      }
+    };
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '關閉 (Close)';
+    closeBtn.style.flex = '1';
+    closeBtn.style.padding = '12px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.border = '1px solid #2196F3';
+    closeBtn.style.backgroundColor = '#2196F3';
+    closeBtn.style.color = 'white';
+    closeBtn.style.borderRadius = '5px';
+    closeBtn.onclick = () => {
+      menu!.style.display = 'none';
+    };
+
+    buttonRow.appendChild(resetBtn);
+    buttonRow.appendChild(closeBtn);
+    container.appendChild(buttonRow);
   }
 }
 

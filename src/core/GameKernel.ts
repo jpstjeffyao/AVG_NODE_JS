@@ -5,6 +5,7 @@ import { StateManager, GameState } from './StateManager';
 import { ScriptEngine } from '../modules/ScriptEngine';
 import { UIModule } from '../modules/UIModule';
 import { IGameModule } from './IGameModule';
+import { ConfigManager } from './ConfigManager';
 
 export class GameKernel {
     public assetManager: AssetManager;
@@ -13,12 +14,14 @@ export class GameKernel {
     public scriptEngine: ScriptEngine;
     public uiModule: UIModule;
     public audio: AudioManager;
+    public configManager: ConfigManager;
     public modules: IGameModule[] = [];
 
     public constructor() {
         // 1. 核心管理器
         this.assetManager = new AssetManager();
         this.stateManager = new StateManager();
+        this.configManager = new ConfigManager();
 
         // 2. 功能模組
         this.characterModule = new CharacterModule(this.assetManager);
@@ -29,10 +32,14 @@ export class GameKernel {
         // 3. 註冊模組
         this.registerModule(this.assetManager);
         this.registerModule(this.stateManager);
+        this.registerModule(this.configManager);
         this.registerModule(this.characterModule);
         this.registerModule(this.audio);
         this.registerModule(this.scriptEngine);
         this.registerModule(this.uiModule);
+
+        // 4. 套用已儲存的設定到 AudioManager
+        this.applySettings();
     }
 
     public registerModule(module: IGameModule): void {
@@ -168,5 +175,17 @@ export class GameKernel {
         await this.scriptEngine.restoreState(data);
 
         alert(`Game loaded from slot ${slot}!`);
+    }
+
+    /**
+     * Apply loaded settings to AudioManager
+     * 套用已載入的設定到音訊管理器
+     */
+    private applySettings(): void {
+        const settings = this.configManager.getSettings();
+        this.audio.setMasterVolume(settings.masterVolume);
+        this.audio.setBGMVolume(settings.bgmVolume);
+        this.audio.setSFXVolume(settings.sfxVolume);
+        console.log('[GameKernel] Settings applied to AudioManager');
     }
 }

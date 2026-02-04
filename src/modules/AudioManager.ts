@@ -16,6 +16,8 @@ class AudioManager implements IGameModule {
     private bgmAudio: HTMLAudioElement;
     private sfxPool: HTMLAudioElement[];
     private masterVolume: number = 1.0;
+    private bgmVolume: number = 1.0;
+    private sfxVolume: number = 1.0;
     private isMuted: boolean = false;
 
     constructor() {
@@ -28,6 +30,16 @@ class AudioManager implements IGameModule {
         this.updateAudioVolumes();
     }
 
+    setBGMVolume(volume: number): void {
+        this.bgmVolume = Math.max(0, Math.min(1, volume));
+        this.updateAudioVolumes();
+    }
+
+    setSFXVolume(volume: number): void {
+        this.sfxVolume = Math.max(0, Math.min(1, volume));
+        this.updateAudioVolumes();
+    }
+
     toggleMute(): boolean {
         this.isMuted = !this.isMuted;
         this.updateAudioVolumes();
@@ -35,11 +47,15 @@ class AudioManager implements IGameModule {
     }
 
     private updateAudioVolumes(): void {
-        const effectiveVolume = this.isMuted ? 0 : this.masterVolume;
-        this.bgmAudio.volume = effectiveVolume;
+        // 計算 BGM 最終音量：主音量 * BGM 音量
+        const effectiveBGMVolume = this.isMuted ? 0 : (this.masterVolume * this.bgmVolume);
+        this.bgmAudio.volume = effectiveBGMVolume;
+
+        // 計算 SFX 最終音量：主音量 * SFX 音量
+        const effectiveSFXVolume = this.isMuted ? 0 : (this.masterVolume * this.sfxVolume);
         this.sfxPool.forEach(audio => {
             if (!audio.paused) {
-                audio.volume = effectiveVolume;
+                audio.volume = effectiveSFXVolume;
             }
         });
     }
@@ -67,7 +83,7 @@ class AudioManager implements IGameModule {
             this.bgmAudio.src = srcOrElement;
         }
 
-        this.bgmAudio.volume = safeVolume * this.masterVolume;
+        this.bgmAudio.volume = safeVolume * this.masterVolume * this.bgmVolume;
         this.bgmAudio.loop = safeLoop;
 
         this.bgmAudio.play().catch((err) => {
@@ -118,7 +134,7 @@ class AudioManager implements IGameModule {
         const availableAudio = this.sfxPool.find(audio => audio.paused);
         if (availableAudio) {
             availableAudio.src = src;
-            availableAudio.volume = volume * this.masterVolume;
+            availableAudio.volume = volume * this.masterVolume * this.sfxVolume;
             availableAudio.play().catch(console.error);
         } else {
             console.warn('No available audio elements in the SFX pool.');

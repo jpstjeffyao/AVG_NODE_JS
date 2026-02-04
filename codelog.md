@@ -365,3 +365,45 @@
 
 ### Reason
 - To support saving and loading game progress, a critical feature for AVG games. The `index.ts` fix ensures that the saved game data contains the correct script identifier for restoration.
+
+# 2026-02-04 20:40:00
+### Changes
+- Implemented **System Settings Module**.
+- **[NEW] ConfigManager.ts**: Created settings manager with `GameSettings` interface and LocalStorage persistence. Supports Master/BGM/SFX volume, text speed, auto-play speed, and mute toggle.
+- **[MODIFY] AudioManager.ts**: Added separate BGM and SFX volume channels. Updated volume calculation to multiply master * channel-specific volume. Added `setBGMVolume` and `setSFXVolume` methods.
+- **[MODIFY] UIModule.ts**: 
+  - Updated `renderText` to read text speed from `ConfigManager` instead of hardcoded 40ms.
+  - Implemented `showSettingsMenu()` with interactive sliders for volume controls and buttons for text speed (Slow/Normal/Fast).
+  - Connected "Settings" button to show the menu.
+- **[MODIFY] GameKernel.ts**: Integrated `ConfigManager` as a core module, registered it, and added `applySettings()` method to apply loaded settings to `AudioManager` on boot.
+- **[NEW] DefineDocument/10_SettingsSystem.md**: Design document for the settings system.
+
+### Reason
+- To provide players with customizable audio and text speed settings. Settings persist globally across sessions and apply immediately when changed.
+
+# 2026-02-04 21:35:00
+### Changes
+- Implemented **Auto-Skip/Auto-Play Feature**.
+- **[MODIFY] UIModule.ts**: 
+  - Added `_autoPlayEnabled` and `_autoPlayTimer` private properties for state tracking.
+  - Implemented `toggleAutoPlay()`: Toggles auto-play mode and updates button visual feedback.
+  - Implemented `scheduleAutoAdvance()`: Schedules automatic dialogue progression after text completes typing.
+  - Implemented `cancelAutoAdvance()`: Cancels scheduled auto-advance when user manually clicks.
+  - Implemented `updateAutoPlayButton()`: Updates button color to indicate active/inactive state (green when active).
+  - Updated `completeTyping()`: Triggers auto-advance if auto-play is enabled.
+  - Updated `handleDocumentClick()`: Cancels auto-advance timer on manual click.
+  - Connected "Auto" button to `toggleAutoPlay()`.
+
+### Reason
+- To allow players to automatically progress through dialogue without clicking. Uses `autoPlaySpeed` from ConfigManager (default: 2000ms). Manual clicks temporarily cancel auto-advance for current dialogue.
+
+# 2026-02-04 22:15:00
+### Changes
+- Fixed **Script Compatibility Issue**.
+- **[MODIFY] ScriptEngine.ts**: Implemented a legacy command parser in `executeLine`. 
+  - Automatically converts `[COMMAND: ARG, ...]` format to the new `COMMAND|ARG|...` format.
+  - Specifically handles `BGM_PLAY` and `SFX_PLAY` to strip `ASSETS/MUSIC/` and `ASSETS/SOUND/` prefixes and convert boolean strings to lowercase.
+  - Resolves `Unknown command: [BGM_PLAY: ...]` errors in older scripts.
+
+### Reason
+- To ensure backward compatibility with existing scripts (like `ScriptTest-2_2`) while maintaining the standardized pipe-delimited format for new scripts.

@@ -108,6 +108,38 @@ export class ScriptEngine implements IGameModule {
     private async executeLine(line: string): Promise<void> {
         if (line.trim().startsWith('#')) return;
 
+        // --- LEGACY FORMAT SUPPORT START ---
+        // Convert [COMMAND: ARG1, ARG2] to COMMAND|ARG1|ARG2
+        if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+            const content = line.trim().slice(1, -1); // Remove [ and ]
+            const firstColonIndex = content.indexOf(':');
+
+            if (firstColonIndex !== -1) {
+                const legacyCommand = content.substring(0, firstColonIndex).trim().toUpperCase();
+                let legacyArgs = content.substring(firstColonIndex + 1).trim();
+
+                // Audio commands: Fix paths and boolean values
+                if (legacyCommand.includes('BGM_PLAY') || legacyCommand.includes('SFX_PLAY')) {
+                    const args = legacyArgs.split(',').map(s => s.trim());
+                    let filename = args[0];
+                    // Strip path prefixes (case-insensitive)
+                    filename = filename.replace(/^ASSETS\/MUSIC\//i, '')
+                        .replace(/^ASSETS\/SOUND\//i, '');
+
+                    const volume = args[1] || '1.0';
+                    const loop = args[2] ? args[2].toLowerCase() : (legacyCommand.includes('BGM') ? 'true' : 'false');
+
+                    line = `${legacyCommand}|${filename}|${volume}|${loop}`;
+                } else {
+                    // Generic conversion for other commands: replace commas with pipes
+                    const args = legacyArgs.split(',').map(s => s.trim());
+                    line = `${legacyCommand}|${args.join('|')}`;
+                }
+                console.log(`[ScriptEngine] Converted legacy command: ${line}`);
+            }
+        }
+        // --- LEGACY FORMAT SUPPORT END ---
+
         const parts = line.split('|');
         const command = parts[0].trim().toUpperCase(); // 指令改為不分大小寫
 
